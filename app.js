@@ -48,7 +48,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   const pass = document.getElementById('login-pass').value.trim();
 
   // Query Supabase profiles table
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('username', username)
