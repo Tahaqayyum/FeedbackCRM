@@ -60,7 +60,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Yahan 'user' variable define karna lazmi hai
+  // Yahan 'user' variable define kiya gaya hai
   const user = data[0];
 
   if (user.status === 'deactive') {
@@ -68,13 +68,12 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Redirect based on role
+  // Redirect based on role (Single clean block)
   if (user.role === 'admin') {
     switchScreen('admin-screen');
     loadAdminDashboard();
   } else {
-    // Agar aapne 2 buttons wala dashboard banaya hai toh 'user-dashboard-screen' rakhein, warna 'user-screen'
-    switchScreen('user-dashboard-screen'); 
+    switchScreen('user-dashboard-screen'); // 2 buttons wala screen
   }
 });
 
