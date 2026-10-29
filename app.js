@@ -47,40 +47,36 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   const username = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value.trim();
 
-  // Query Supabase profiles table for custom auth or use Supabase Auth
+  // Query Supabase profiles table
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('username', username)
     .eq('password', pass)
-    .single();
+    .limit(1);
 
-  if (error || !data) {
+  if (error || !data || data.length === 0) {
     alert('Invalid User ID or Password!');
     return;
   }
 
-  if (data.status === 'deactive') {
+  // Define 'user' variable properly from the fetched array data
+  const user = data[0];
+
+  if (user.status === 'deactive') {
     alert('Your account has been deactivated by admin.');
     return;
   }
 
-// Login redirection update
+  // Redirect based on role
   if (user.role === 'admin') {
     switchScreen('admin-screen');
     loadAdminDashboard();
   } else {
-    switchScreen('user-dashboard-screen'); // Redirect to 2 buttons dashboard
-  }
-
-  // Redirect based on role
-  if (data.role === 'admin') {
-    switchScreen('admin-screen');
-    loadAdminDashboard();
-  } else {
-    switchScreen('user-screen');
+    switchScreen('user-screen'); // ya 'user-dashboard-screen' agar aapne 2 buttons wala feature add kiya hai
   }
 });
+
 
 function logout() {
   switchScreen('splash-screen');

@@ -54,3 +54,49 @@ alter table customer_feedbacks disable row level security;
 Supabase Project settings
 CustomerDataCollectForm
 wJbMsHHrdzwCDJOl
+
+
+
+
+
+
+// ==================== AUTHENTICATION ====================
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+
+  // Query Supabase profiles table for custom auth or use Supabase Auth
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('username', username)
+    .eq('password', pass)
+    .single();
+
+  if (error || !data) {
+    alert('Invalid User ID or Password!');
+    return;
+  }
+
+  if (data.status === 'deactive') {
+    alert('Your account has been deactivated by admin.');
+    return;
+  }
+
+// Login redirection update
+  if (user.role === 'admin') {
+    switchScreen('admin-screen');
+    loadAdminDashboard();
+  } else {
+    switchScreen('user-dashboard-screen'); // Redirect to 2 buttons dashboard
+  }
+
+  // Redirect based on role
+  if (data.role === 'admin') {
+    switchScreen('admin-screen');
+    loadAdminDashboard();
+  } else {
+    switchScreen('user-screen');
+  }
+});
