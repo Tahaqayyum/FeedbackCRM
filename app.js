@@ -48,7 +48,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   const pass = document.getElementById('login-pass').value.trim();
 
   // Query Supabase profiles table
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('profiles')
     .select('*')
     .eq('username', username)
@@ -60,7 +60,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Define 'user' variable properly from the fetched array data
+  // Yahan 'user' variable define karna lazmi hai
   const user = data[0];
 
   if (user.status === 'deactive') {
@@ -73,10 +73,10 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     switchScreen('admin-screen');
     loadAdminDashboard();
   } else {
-    switchScreen('user-screen'); // ya 'user-dashboard-screen' agar aapne 2 buttons wala feature add kiya hai
+    // Agar aapne 2 buttons wala dashboard banaya hai toh 'user-dashboard-screen' rakhein, warna 'user-screen'
+    switchScreen('user-dashboard-screen'); 
   }
 });
-
 
 function logout() {
   switchScreen('splash-screen');
