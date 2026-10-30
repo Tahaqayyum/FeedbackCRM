@@ -71,16 +71,18 @@
         <input type="tel" id="fb-cust-mobile" placeholder="Enter mobile number" required>
 
         <div id="dynamic-questions-container" style="margin: 15px 0;">
-          <!-- Dynamic Questions with Options -->
+          <!-- Questions will appear one by one dynamically -->
         </div>
 
-        <!-- Single Global Comment Box -->
-        <label style="margin-top: 15px; display: block;">Additional Feedback / Comments</label>
-        <textarea id="global-feedback-comment" placeholder="Enter general comments or feedback here..." style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; resize: vertical; height: 80px; margin-bottom: 15px;"></textarea>
+        <!-- Initially Hidden: Appears only after all questions are answered -->
+        <div id="feedback-submit-section" style="display: none;">
+          <label style="margin-top: 15px; display: block;">Additional Feedback / Comments</label>
+          <textarea id="global-feedback-comment" placeholder="Enter general comments or feedback here..." style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; resize: vertical; height: 80px; margin-bottom: 15px;"></textarea>
 
-        <button type="submit">Submit Feedback</button>
+          <button type="submit">Submit Feedback</button>
+        </div>
       </form>
-      <button onclick="switchScreen('user-dashboard-screen')" style="background: #6b7280; margin-top: 15px;">Back</button>
+      <button onclick="switchScreen('user-dashboard-screen')" style="background: #6b7280; margin-top: 15px;">Back to Dashboard</button>
     </div>
     <footer>Design & develop by: TahaQayyum</footer>
   </div>

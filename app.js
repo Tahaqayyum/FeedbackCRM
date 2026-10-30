@@ -106,37 +106,77 @@ document.getElementById('customer-form').addEventListener('submit', async (e) =>
 });
 
 // ==================== FEEDBACK FORM LOGIC (Single Comment Box) ====================
+// ==================== STEP-BY-STEP FEEDBACK FLOW ====================
+let activeQuestions = [];
+let currentQIndex = 0;
+let feedbackAnswers = {};
+
 async function openFeedbackForm() {
   switchScreen('feedback-form-screen');
   const { data, error } = await db.from('feedback_questions').select('*');
   const container = document.getElementById('dynamic-questions-container');
+  const submitSection = document.getElementById('feedback-submit-section');
+  
   if (!container) return;
   container.innerHTML = '';
+  if (submitSection) submitSection.style.display = 'none'; // Hide submit initially
 
-  if (data && data.length > 0) {
-    data.forEach((q, index) => {
-      let optionsHtml = '';
-      if (q.options) {
-        const optList = q.options.split(',').map(o => o.trim());
-        optList.forEach(opt => {
-          optionsHtml += `
-            <label style="display: inline-block; margin-right: 15px; font-weight: normal; cursor: pointer;">
-              <input type="radio" name="answer_${q.id}" value="${opt}" required style="width: auto; margin-right: 5px;"> ${opt}
-            </label>
-          `;
-        });
-      }
-
-      container.innerHTML += `
-        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <label style="font-weight: 600; display:block; margin-bottom:8px;">${index + 1}. ${q.question_text}</label>
-          <div>${optionsHtml}</div>
-        </div>
-      `;
-    });
-  } else {
+  if (error || !data || data.length === 0) {
     container.innerHTML = `<p style="color: #ef4444; text-align:center;">No feedback questions available.</p>`;
+    return;
   }
+
+  activeQuestions = data;
+  currentQIndex = 0;
+  feedbackAnswers = {};
+  renderCurrentQuestion();
+}
+
+function renderCurrentQuestion() {
+  const container = document.getElementById('dynamic-questions-container');
+  const submitSection = document.getElementById('feedback-submit-section');
+
+  if (currentQIndex < activeQuestions.length) {
+    const q = activeQuestions[currentQIndex];
+    let optionsHtml = '';
+    if (q.options) {
+      const optList = q.options.split(',').map(o => o.trim());
+      optList.forEach(opt => {
+        optionsHtml += `
+          <label style="display: block; margin: 10px 0; font-weight: normal; cursor: pointer; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; transition: 0.2s;">
+            <input type="radio" name="answer_${q.id}" value="${opt}" onclick="handleAnswerSelect('${q.question_text.replace(/'/g, "\\'")}', '${opt.replace(/'/g, "\\'")}')" style="width: auto; margin-right: 10px;"> ${opt}
+          </label>
+        `;
+      });
+    }
+
+    container.innerHTML = `
+      <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); animation: fadeIn 0.4s ease-in-out;">
+        <div style="font-size: 0.85rem; color: #4f46e5; font-weight: 600; margin-bottom: 5px;">Question ${currentQIndex + 1} of ${activeQuestions.length}</div>
+        <label style="font-weight: 600; display:block; margin-bottom: 12px; font-size: 1.05rem;">${q.question_text}</label>
+        <div>${optionsHtml}</div>
+      </div>
+    `;
+  } else {
+    // All questions answered: hide question container, show success note & submit section
+    container.innerHTML = `
+      <div style="background: #ecfdf5; color: #065f46; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 15px;">
+        <i class="fa-solid fa-circle-check" style="font-size: 1.5rem; margin-bottom: 5px; display: block;"></i>
+        All questions answered! Add comments below and submit.
+      </div>
+    `;
+    if (submitSection) submitSection.style.display = 'block';
+  }
+}
+
+function handleAnswerSelect(qText, answerVal) {
+  feedbackAnswers[qText] = answerVal;
+  
+  // Smooth transition delay to the next question
+  setTimeout(() => {
+    currentQIndex++;
+    renderCurrentQuestion();
+  }, 350);
 }
 
 document.getElementById('submit-feedback-form')?.addEventListener('submit', async (e) => {
@@ -146,34 +186,33 @@ document.getElementById('submit-feedback-form')?.addEventListener('submit', asyn
   const globalCommentInput = document.getElementById('global-feedback-comment');
   const globalComment = globalCommentInput ? globalCommentInput.value.trim() : '';
   
-  const { data: questions, error: qError } = await db.from('feedback_questions').select('*');
-  
-  if (qError || !questions || questions.length === 0) {
-    alert('Error loading questions or no questions found.');
+  if (Object.keys(feedbackAnswers).length === 0) {
+    alert('Please answer the questions first.');
     return;
   }
 
-  let feedbackResponses = {};
-  questions.forEach(q => {
-    const selectedOpt = document.querySelector(`input[name="answer_${q.id}"]:checked`);
-    feedbackResponses[q.question_text] = selectedOpt ? selectedOpt.value : 'Not Answered';
-  });
-
-  const { error: insertError } = await db.from('customer_feedbacks').insert([{
+  const { error } = await db.from('customer_feedbacks').insert([{
     customer_name: name,
     customer_mobile: mobile,
-    feedback_data: feedbackResponses,
+    feedback_data: feedbackAnswers,
     comment: globalComment
   }]);
 
-  if (insertError) {
-    alert('Error saving feedback: ' + insertError.message);
+  if (error) {
+    alert('Error saving feedback: ' + error.message);
     return;
   }
 
-  alert('Feedback submitted successfully!');
+  // Show Success Popup Modal for 3 seconds
+  const modal = document.getElementById('popup-modal');
+  modal.style.display = 'flex';
+  setTimeout(() => {
+    modal.style.display = 'none';
+  }, 3000);
+
+  // Auto clear form and restart feedback form on the same screen (stays on feedback screen)
   document.getElementById('submit-feedback-form').reset();
-  switchScreen('user-dashboard-screen');
+  openFeedbackForm(); 
 });
 
 // ==================== ADMIN DASHBOARD & TABS ====================
