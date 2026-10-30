@@ -2,18 +2,14 @@
 const SUPABASE_URL = 'https://biojkrvccatxvqgujmbg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_6qAOMcKq6qG4e6qVGlPEDQ_ykuaMo8n';
 
-// Safe initialization using window to prevent redeclaration errors
 if (!window.dbInstance) {
   window.dbInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
-// Both variables mapped safely so neither db nor supabase throws undefined error
 var db = window.dbInstance;
 var supabase = window.dbInstance;
 
-// Global State
 let allCustomers = [];
 
-// ==================== INITIALIZATION & SETTINGS ====================
 window.addEventListener('DOMContentLoaded', async () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js');
@@ -27,9 +23,7 @@ async function loadAppSettings() {
     if (data) {
       applyTheme(data.primary_color, data.body_color, data.logo_url);
     }
-  } catch (err) {
-    // Fallback if settings table is empty
-  }
+  } catch (err) {}
 }
 
 function applyTheme(primary, bodyBg, logoUrl) {
@@ -38,14 +32,11 @@ function applyTheme(primary, bodyBg, logoUrl) {
   document.documentElement.style.setProperty('--body-bg', bodyBg || '#f3f4f6');
 
   if (logoUrl) {
-    const splashLogo = document.getElementById('splash-logo');
-    const formLogo = document.getElementById('form-logo');
-    const adminLogo = document.getElementById('admin-logo');
-    const dashLogo = document.getElementById('dashboard-logo');
-    if (splashLogo) splashLogo.src = logoUrl;
-    if (formLogo) formLogo.src = logoUrl;
-    if (adminLogo) adminLogo.src = logoUrl;
-    if (dashLogo) dashLogo.src = logoUrl;
+    const logos = ['splash-logo', 'form-logo', 'admin-logo', 'dashboard-logo'];
+    logos.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.src = logoUrl;
+    });
   }
 }
 
@@ -55,7 +46,6 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   const username = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value.trim();
 
-  // Query Supabase profiles table using limit(1) to prevent 406 errors
   const { data, error } = await db
     .from('profiles')
     .select('*')
@@ -68,7 +58,6 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Defined 'user' variable safely
   const user = data[0];
 
   if (user.status === 'deactive') {
@@ -76,12 +65,11 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Redirect based on role
   if (user.role === 'admin') {
     switchScreen('admin-screen');
     loadAdminDashboard();
   } else {
-    switchScreen('user-dashboard-screen'); // 2 buttons user dashboard
+    switchScreen('user-dashboard-screen');
   }
 });
 
@@ -108,36 +96,46 @@ document.getElementById('customer-form').addEventListener('submit', async (e) =>
     return;
   }
 
-  // Show Success Popup Modal for 3 seconds
   const modal = document.getElementById('popup-modal');
   modal.style.display = 'flex';
-
   setTimeout(() => {
     modal.style.display = 'none';
   }, 3000);
 
-  // Clear form automatically
   document.getElementById('customer-form').reset();
 });
 
-// ==================== FEEDBACK FORM LOGIC ====================
+// ==================== FEEDBACK FORM LOGIC (WithOptions & Comment Box) ====================
 async function openFeedbackForm() {
   switchScreen('feedback-form-screen');
-  const { data, error } = await db.from('feedback_questions').select('*').eq('is_active', true);
+  const { data, error } = await db.from('feedback_questions').select('*');
   const container = document.getElementById('dynamic-questions-container');
   container.innerHTML = '';
 
   if (data && data.length > 0) {
     data.forEach((q, index) => {
+      let optionsHtml = '';
+      if (q.options) {
+        const optList = q.options.split(',').map(o => o.trim());
+        optList.forEach(opt => {
+          optionsHtml += `
+            <label style="display: inline-block; margin-right: 15px; font-weight: normal; cursor: pointer;">
+              <input type="radio" name="answer_${q.id}" value="${opt}" required style="width: auto; margin-right: 5px;"> ${opt}
+            </label>
+          `;
+        });
+      }
+
       container.innerHTML += `
-        <div style="margin-bottom: 15px;">
-          <label style="font-weight: 600; display:block; margin-bottom:5px;">${index + 1}. ${q.question_text}</label>
-          <input type="text" name="answer_${q.id}" placeholder="Enter answer..." required style="margin: 0;">
+        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <label style="font-weight: 600; display:block; margin-bottom:8px;">${index + 1}. ${q.question_text}</label>
+          <div style="margin-bottom: 10px;">${optionsHtml}</div>
+          <textarea name="comment_${q.id}" placeholder="Optional comment / notes for this question..." style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; resize: vertical; height: 60px; margin: 0;"></textarea>
         </div>
       `;
     });
   } else {
-    container.innerHTML = `<p style="color: #ef4444; text-align:center;">No feedback questions available. Ask admin to add questions.</p>`;
+    container.innerHTML = `<p style="color: #ef4444; text-align:center;">No feedback questions available.</p>`;
   }
 }
 
@@ -146,22 +144,27 @@ document.getElementById('submit-feedback-form').addEventListener('submit', async
   const name = document.getElementById('fb-cust-name').value.trim();
   const mobile = document.getElementById('fb-cust-mobile').value.trim();
   
-  const { data: questions } = await db.from('feedback_questions').select('id').eq('is_active', true);
+  const { data: questions } = await db.from('feedback_questions').select('id');
   
   if (!questions || questions.length === 0) {
-    alert('No active questions found.');
+    alert('No questions found.');
     return;
   }
 
   for (let q of questions) {
-    const inputField = document.querySelector(`input[name="answer_${q.id}"]`);
-    if (inputField) {
-      const inputVal = inputField.value.trim();
+    const selectedOpt = document.querySelector(`input[name="answer_${q.id}"]:checked`);
+    const commentField = document.querySelector(`textarea[name="comment_${q.id}"]`);
+    
+    if (selectedOpt) {
+      const answerVal = selectedOpt.value;
+      const commentVal = commentField ? commentField.value.trim() : '';
+      const finalAnswer = commentVal ? `${answerVal} (Comment: ${commentVal})` : answerVal;
+
       await db.from('customer_feedbacks').insert([{
         customer_name: name,
         customer_mobile: mobile,
         question_id: q.id,
-        answer: inputVal
+        answer: finalAnswer
       }]);
     }
   }
@@ -330,10 +333,12 @@ async function deleteUser(id) {
 document.getElementById('add-question-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const text = document.getElementById('new-question-text').value.trim();
-  const { error } = await db.from('feedback_questions').insert([{ question_text: text }]);
+  const options = document.getElementById('new-question-options').value.trim();
+  
+  const { error } = await db.from('feedback_questions').insert([{ question_text: text, options: options }]);
   if (!error) {
     alert('Question added successfully!');
-    document.getElementById('new-question-text').value = '';
+    document.getElementById('add-question-form').reset();
     loadQuestionsList();
   } else {
     alert('Error: ' + error.message);
@@ -350,9 +355,9 @@ async function loadQuestionsList() {
     return;
   }
 
-  let html = `<table><thead><tr><th>Question</th><th>Action</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Question</th><th>Options</th><th>Action</th></tr></thead><tbody>`;
   data.forEach(q => {
-    html += `<tr><td>${q.question_text}</td><td><button onclick="deleteQuestion('${q.id}')" style="background:#ef4444; padding:5px; width:auto;">Delete</button></td></tr>`;
+    html += `<tr><td>${q.question_text}</td><td>${q.options || '-'}</td><td><button onclick="deleteQuestion('${q.id}')" style="background:#ef4444; padding:5px; width:auto;">Delete</button></td></tr>`;
   });
   html += `</tbody></table>`;
   container.innerHTML = html;
@@ -374,7 +379,7 @@ async function loadFeedbacksReport() {
     return;
   }
 
-  let html = `<table><thead><tr><th>Customer Name</th><th>Mobile</th><th>Question</th><th>Answer</th><th>Date</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Customer Name</th><th>Mobile</th><th>Question</th><th>Answer & Comments</th><th>Date</th></tr></thead><tbody>`;
   data.forEach(f => {
     const qText = f.feedback_questions ? f.feedback_questions.question_text : 'N/A';
     html += `
@@ -417,7 +422,7 @@ async function exportFeedbackExcel() {
     'Customer Name': item.customer_name,
     'Mobile Number': item.customer_mobile,
     'Question': item.feedback_questions ? item.feedback_questions.question_text : 'N/A',
-    'Answer': item.answer,
+    'Answer & Comments': item.answer,
     'Date Submitted': new Date(item.created_at).toLocaleString()
   }));
 

@@ -24,20 +24,21 @@
     </div>
   </div>
 
-<!-- USER DASHBOARD SCREEN (2 BUTTONS) -->
-<div id="user-dashboard-screen" class="screen">
-  <div style="max-width: 450px; margin: auto; padding: 2rem; width: 100%; text-align: center;">
-    <img id="dashboard-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" style="width: 70px; height: 70px; object-fit: contain; margin-bottom: 1rem;">
-    <h2>Welcome User</h2>
-    <p style="color: #6b7280; margin-bottom: 2rem;">Select an option to proceed</p>
-    
-    <button onclick="switchScreen('user-form-screen')" style="margin-bottom: 15px; padding: 15px; font-size: 1.1rem;"><i class="fa-solid fa-user-plus"></i> Customer Data Collect</button>
-    <button onclick="openFeedbackForm()" style="padding: 15px; font-size: 1.1rem; background-color: #10b981;"><i class="fa-solid fa-comments"></i> Feedback Form</button>
-    
-    <button onclick="logout()" style="background: #ef4444; margin-top: 30px;">Logout</button>
+  <!-- USER DASHBOARD SCREEN (2 BUTTONS) -->
+  <div id="user-dashboard-screen" class="screen">
+    <div style="max-width: 450px; margin: auto; padding: 2rem; width: 100%; text-align: center;">
+      <img id="dashboard-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" style="width: 70px; height: 70px; object-fit: contain; margin-bottom: 1rem;">
+      <h2>Welcome User</h2>
+      <p style="color: #6b7280; margin-bottom: 2rem;">Select an option to proceed</p>
+      
+      <!-- Fixed: switched to 'user-screen' -->
+      <button onclick="switchScreen('user-screen')" style="margin-bottom: 15px; padding: 15px; font-size: 1.1rem;"><i class="fa-solid fa-user-plus"></i> Customer Data Collect</button>
+      <button onclick="openFeedbackForm()" style="padding: 15px; font-size: 1.1rem; background-color: #10b981;"><i class="fa-solid fa-comments"></i> Feedback Form</button>
+      
+      <button onclick="logout()" style="background: #ef4444; margin-top: 30px;">Logout</button>
+    </div>
+    <footer>Design & develop by: TahaQayyum</footer>
   </div>
-  <footer>Design & develop by: TahaQayyum</footer>
-</div>
 
   <!-- 2. USER FORM SCREEN -->
   <div id="user-screen" class="screen">
@@ -53,37 +54,32 @@
         <input type="tel" id="cust-mobile" placeholder="Enter mobile number" required>
         <button type="submit">Save Record</button>
       </form>
-      <button onclick="logout()" style="background: #ef4444; margin-top: 15px;">Logout</button>
+      <button onclick="switchScreen('user-dashboard-screen')" style="background: #6b7280; margin-top: 15px;">Back</button>
     </div>
     <footer>design & develop by TahaQayyum</footer>
   </div>
 
-<!-- FEEDBACK FORM SCREEN -->
-<div id="feedback-form-screen" class="screen">
-  <div style="max-width: 450px; margin: auto; padding: 2rem; width: 100%;">
-    <h2 style="text-align: center; margin-bottom: 1.5rem;">Customer Feedback</h2>
-    <form id="submit-feedback-form">
-      <label>Customer Name</label>
-      <input type="text" id="fb-cust-name" placeholder="Enter customer name" required>
-      
-      <label>Mobile Number</label>
-      <input type="tel" id="fb-cust-mobile" placeholder="Enter mobile number" required>
+  <!-- FEEDBACK FORM SCREEN -->
+  <div id="feedback-form-screen" class="screen">
+    <div style="max-width: 450px; margin: auto; padding: 2rem; width: 100%; max-height: 100vh; overflow-y: auto;">
+      <h2 style="text-align: center; margin-bottom: 1.5rem;">Customer Feedback</h2>
+      <form id="submit-feedback-form">
+        <label>Customer Name</label>
+        <input type="text" id="fb-cust-name" placeholder="Enter customer name" required>
+        
+        <label>Mobile Number</label>
+        <input type="tel" id="fb-cust-mobile" placeholder="Enter mobile number" required>
 
-      <div id="dynamic-questions-container" style="margin: 15px 0;">
-        <!-- Questions will load dynamically via JS -->
-      </div>
+        <div id="dynamic-questions-container" style="margin: 15px 0;">
+          <!-- Dynamic Questions with Options & Comment box -->
+        </div>
 
-      <button type="submit">Submit Feedback</button>
-    </form>
-    <button onclick="switchScreen('user-dashboard-screen')" style="background: #6b7280; margin-top: 15px;">Back</button>
+        <button type="submit">Submit Feedback</button>
+      </form>
+      <button onclick="switchScreen('user-dashboard-screen')" style="background: #6b7280; margin-top: 15px;">Back</button>
+    </div>
+    <footer>Design & develop by: TahaQayyum</footer>
   </div>
-  <footer>Design & develop by: TahaQayyum</footer>
-</div>
-
-
-
-
-
 
   <!-- 3. ADMIN DASHBOARD SCREEN -->
   <div id="admin-screen" class="screen">
@@ -100,7 +96,7 @@
         <button class="tab-btn active" onclick="switchTab(0)">Customer List</button>
         <button class="tab-btn" onclick="switchTab(1)">Download Report</button>
         <button class="tab-btn" onclick="switchTab(2)">Users</button>
-        <button class="tab-btn" onclick="switchTab(3)">Settings & Branding</button>
+        <button class="tab-btn" onclick="switchTab(3)">Settings</button>
         <button class="tab-btn" onclick="switchTab(4)">Feedback Questions</button>
         <button class="tab-btn" onclick="switchTab(5)">Customer Feedbacks</button>
       </nav>
@@ -118,16 +114,14 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="customer-table-body">
-            <!-- Dynamic Data -->
-          </tbody>
+          <tbody id="customer-table-body"></tbody>
         </table>
       </div>
 
       <!-- Tab 2: Download Report -->
       <div class="tab-content" id="tab-report">
         <h3>Export Reports to Excel</h3>
-        <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
           <label>Filter By Range:</label>
           <select id="report-filter">
             <option value="all">All Time</option>
@@ -142,66 +136,62 @@
       <!-- Tab 3: Users Management -->
       <div class="tab-content" id="tab-users">
         <h3>Manage System Users</h3>
-        <form id="add-user-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <form id="add-user-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
           <input type="text" id="new-username" placeholder="Username" required>
           <input type="password" id="new-password" placeholder="Password" required>
           <select id="new-role">
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
-          <button type="submit">Add / Update User</button>
+          <button type="submit">Add User</button>
         </form>
-        <div style="margin-top: 1.5rem;" id="users-list-container">
-          <!-- User list populated via JS -->
-        </div>
+        <div style="margin-top: 1.5rem;" id="users-list-container"></div>
       </div>
 
       <!-- Tab 4: Branding & Theme -->
       <div class="tab-content" id="tab-settings">
         <h3>Branding & Theme Customization</h3>
-        <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
           <label>Company Logo URL</label>
           <input type="text" id="setting-logo-url" placeholder="Paste image URL here">
-          
           <label style="margin-top: 10px; display: block;">Primary Theme Color</label>
           <input type="color" id="setting-primary-color" value="#4f46e5" style="height: 45px; padding: 2px;">
-
           <label style="margin-top: 10px; display: block;">Body Background Color</label>
           <input type="color" id="setting-body-color" value="#f3f4f6" style="height: 45px; padding: 2px;">
-
           <button onclick="saveSettings()" style="margin-top: 20px;">Save Settings</button>
         </div>
+      </div>
+
+      <!-- Tab 5: Feedback Questions Management (Inside Container now) -->
+      <div class="tab-content" id="tab-fb-questions">
+        <h3>Manage Feedback Questions & Options</h3>
+        <form id="add-question-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
+          <input type="text" id="new-question-text" placeholder="Enter question text..." required>
+          <input type="text" id="new-question-options" placeholder="Options (comma separated, e.g. Good, Average, Bad)" required style="margin-top: 8px;">
+          <button type="submit" style="margin-top: 10px;">Add Question</button>
+        </form>
+        <div id="questions-list-container" style="margin-top: 1.5rem;"></div>
+      </div>
+
+      <!-- Tab 6: Customer Feedbacks Report (Inside Container now) -->
+      <div class="tab-content" id="tab-fb-reports">
+        <h3>Customer Feedbacks Report</h3>
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
+          <label>Filter By Range:</label>
+          <select id="fb-report-filter">
+            <option value="all">All Time</option>
+            <option value="day">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+          <button onclick="exportFeedbackExcel()" style="margin-top: 15px;"><i class="fa-solid fa-file-excel"></i> Export Feedbacks Excel</button>
+        </div>
+        <div style="margin-top: 1.5rem; overflow-x: auto;" id="feedbacks-table-container"></div>
       </div>
 
       <footer>Design & develop by: TahaQayyum</footer>
     </div>
   </div>
-
-<!-- Tab 5: Feedback Questions Management -->
-<div class="tab-content" id="tab-fb-questions">
-  <h3>Manage Feedback Questions</h3>
-  <form id="add-question-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
-    <input type="text" id="new-question-text" placeholder="Enter question text..." required>
-    <button type="submit">Add Question</button>
-  </form>
-  <div id="questions-list-container" style="margin-top: 1.5rem;"></div>
-</div>
-
-<!-- Tab 6: Customer Feedbacks Report & Export -->
-<div class="tab-content" id="tab-fb-reports">
-  <h3>Customer Feedbacks Report</h3>
-  <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
-    <label>Filter By Range:</label>
-    <select id="fb-report-filter">
-      <option value="all">All Time</option>
-      <option value="day">Today</option>
-      <option value="week">This Week</option>
-      <option value="month">This Month</option>
-    </select>
-    <button onclick="exportFeedbackExcel()" style="margin-top: 15px;"><i class="fa-solid fa-file-excel"></i> Export Feedbacks Excel</button>
-  </div>
-  <div style="margin-top: 1.5rem;" id="feedbacks-table-container"></div>
-</div>
 
   <!-- POPUP MODAL -->
   <div id="popup-modal" class="modal">
@@ -211,9 +201,7 @@
     </div>
   </div>
 
-  <!-- Include SheetJS for Excel Export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
