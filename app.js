@@ -369,9 +369,9 @@ async function deleteQuestion(id) {
   loadQuestionsList();
 }
 
-// ==================== FEEDBACK REPORTS & EXPORT ====================
+// ==================== FEEDBACK REPORTS & EXPORT (Single Line Table View) ====================
 async function loadFeedbacksReport() {
-  const { data, error } = await db.from('customer_feedbacks').select(`*, feedback_questions(question_text)`).order('created_at', { ascending: false });
+  const { data, error } = await db.from('customer_feedbacks').select('*').order('created_at', { ascending: false });
   const container = document.getElementById('feedbacks-table-container');
   if (!container) return;
 
@@ -380,15 +380,22 @@ async function loadFeedbacksReport() {
     return;
   }
 
-  let html = `<table><thead><tr><th>Customer Name</th><th>Mobile</th><th>Question</th><th>Answer & Comments</th><th>Date</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Customer Name</th><th>Mobile</th><th>Responses (Q & A)</th><th>Comment</th><th>Date</th></tr></thead><tbody>`;
+  
   data.forEach(f => {
-    const qText = f.feedback_questions ? f.feedback_questions.question_text : 'N/A';
+    let qaString = '';
+    if (f.feedback_data) {
+      qaString = Object.entries(f.feedback_data)
+        .map(([q, a]) => `<b>${q}:</b> ${a}`)
+        .join(' | ');
+    }
+
     html += `
       <tr>
         <td>${f.customer_name}</td>
         <td>${f.customer_mobile}</td>
-        <td>${qText}</td>
-        <td>${f.answer}</td>
+        <td>${qaString}</td>
+        <td>${f.comment || '-'}</td>
         <td>${new Date(f.created_at).toLocaleString()}</td>
       </tr>
     `;
@@ -399,7 +406,7 @@ async function loadFeedbacksReport() {
 
 async function exportFeedbackExcel() {
   const filterType = document.getElementById('fb-report-filter').value;
-  let query = db.from('customer_feedbacks').select(`*, feedback_questions(question_text)`);
+  let query = db.from('customer_feedbacks').select('*');
 
   const now = new Date();
   if (filterType === 'day') {
@@ -419,13 +426,22 @@ async function exportFeedbackExcel() {
     return;
   }
 
-  const excelData = data.map(item => ({
-    'Customer Name': item.customer_name,
-    'Mobile Number': item.customer_mobile,
-    'Question': item.feedback_questions ? item.feedback_questions.question_text : 'N/A',
-    'Answer & Comments': item.answer,
-    'Date Submitted': new Date(item.created_at).toLocaleString()
-  }));
+  const excelData = data.map(item => {
+    let rowObj = {
+      'Customer Name': item.customer_name,
+      'Mobile Number': item.customer_mobile
+    };
+
+    if (item.feedback_data) {
+      for (let [q, a] of Object.entries(item.feedback_data)) {
+        rowObj[q] = a;
+      }
+    }
+
+    rowObj['Comment'] = item.comment || '';
+    rowObj['Date Submitted'] = new Date(item.created_at).toLocaleString();
+    return rowObj;
+  });
 
   const worksheet = XLSX.utils.json_to_sheet(excelData);
   const workbook = XLSX.utils.book_new();
