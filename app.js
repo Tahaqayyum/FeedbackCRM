@@ -110,6 +110,7 @@ async function openFeedbackForm() {
   switchScreen('feedback-form-screen');
   const { data, error } = await db.from('feedback_questions').select('*');
   const container = document.getElementById('dynamic-questions-container');
+  if (!container) return;
   container.innerHTML = '';
 
   if (data && data.length > 0) {
@@ -138,42 +139,42 @@ async function openFeedbackForm() {
   }
 }
 
-document.getElementById('submit-feedback-form').addEventListener('submit', async (e) => {
+document.getElementById('submit-feedback-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('fb-cust-name').value.trim();
   const mobile = document.getElementById('fb-cust-mobile').value.trim();
-  const globalComment = document.getElementById('global-feedback-comment').value.trim();
+  const globalCommentInput = document.getElementById('global-feedback-comment');
+  const globalComment = globalCommentInput ? globalCommentInput.value.trim() : '';
   
-  const { data: questions } = await db.from('feedback_questions').select('id');
+  const { data: questions, error: qError } = await db.from('feedback_questions').select('*');
   
-  if (!questions || questions.length === 0) {
-    alert('No questions found.');
+  if (qError || !questions || questions.length === 0) {
+    alert('Error loading questions or no questions found.');
     return;
   }
 
-  // Sabhi answers aur single comment ko database mein insert karna
-  for (let q of questions) {
+  let feedbackResponses = {};
+  questions.forEach(q => {
     const selectedOpt = document.querySelector(`input[name="answer_${q.id}"]:checked`);
-    
-    if (selectedOpt) {
-      const answerVal = selectedOpt.value;
-      // Agar global comment hai toh usay answer ke sath attach kar dein ya alag save karein
-      const finalAnswer = globalComment ? `${answerVal} [Note: ${globalComment}]` : answerVal;
+    feedbackResponses[q.question_text] = selectedOpt ? selectedOpt.value : 'Not Answered';
+  });
 
-      await db.from('customer_feedbacks').insert([{
-        customer_name: name,
-        customer_mobile: mobile,
-        question_id: q.id,
-        answer: finalAnswer
-      }]);
-    }
+  const { error: insertError } = await db.from('customer_feedbacks').insert([{
+    customer_name: name,
+    customer_mobile: mobile,
+    feedback_data: feedbackResponses,
+    comment: globalComment
+  }]);
+
+  if (insertError) {
+    alert('Error saving feedback: ' + insertError.message);
+    return;
   }
 
   alert('Feedback submitted successfully!');
   document.getElementById('submit-feedback-form').reset();
   switchScreen('user-dashboard-screen');
 });
-
 
 // ==================== ADMIN DASHBOARD & TABS ====================
 function switchTab(index) {
