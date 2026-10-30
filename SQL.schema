@@ -51,6 +51,32 @@ alter table feedback_questions disable row level security;
 alter table customer_feedbacks disable row level security;
 
 
+alter table feedback_questions add column if not exists options text;
+
+-- Purani feedback table drop karein aur nayi structured table banayein
+
+drop table if exists customer_feedbacks;
+
+create table customer_feedbacks (
+  id uuid default gen_random_uuid() primary key,
+  customer_name text not null,
+  customer_mobile text not null,
+  feedback_data jsonb not null, -- Isme sare questions, answers aur comment JSON ki shakal me aik hi line me save honge
+  comment text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table customer_feedbacks disable row level security;
+
+
+-- Agar feedback_questions table pehle se hai toh yeh columns add kar dein:
+alter table feedback_questions add column if not exists is_active boolean default true;
+alter table feedback_questions add column if not exists sort_order int default 0;
+
+
+
+
+
 Supabase Project settings
 CustomerDataCollectForm
 wJbMsHHrdzwCDJOl
@@ -58,45 +84,3 @@ wJbMsHHrdzwCDJOl
 
 
 
-
-
-// ==================== AUTHENTICATION ====================
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('login-user').value.trim();
-  const pass = document.getElementById('login-pass').value.trim();
-
-  // Query Supabase profiles table for custom auth or use Supabase Auth
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('username', username)
-    .eq('password', pass)
-    .single();
-
-  if (error || !data) {
-    alert('Invalid User ID or Password!');
-    return;
-  }
-
-  if (data.status === 'deactive') {
-    alert('Your account has been deactivated by admin.');
-    return;
-  }
-
-// Login redirection update
-  if (user.role === 'admin') {
-    switchScreen('admin-screen');
-    loadAdminDashboard();
-  } else {
-    switchScreen('user-dashboard-screen'); // Redirect to 2 buttons dashboard
-  }
-
-  // Redirect based on role
-  if (data.role === 'admin') {
-    switchScreen('admin-screen');
-    loadAdminDashboard();
-  } else {
-    switchScreen('user-screen');
-  }
-});

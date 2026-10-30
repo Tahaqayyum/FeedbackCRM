@@ -168,13 +168,20 @@
         </div>
       </div>
 
-      <!-- Tab 5: Feedback Questions Management (Inside Container now) -->
+      <!-- Tab 5: Feedback Questions Management -->
       <div class="tab-content" id="tab-fb-questions">
         <h3>Manage Feedback Questions & Options</h3>
-        <form id="add-question-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
+        <form id="add-question-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <input type="hidden" id="edit-question-id" value="">
+          <label id="form-mode-label" style="font-weight: 600; color: #4f46e5; margin-bottom: 5px; display:block;">Add New Question</label>
           <input type="text" id="new-question-text" placeholder="Enter question text..." required>
           <input type="text" id="new-question-options" placeholder="Options (comma separated, e.g. Good, Average, Bad)" required style="margin-top: 8px;">
-          <button type="submit" style="margin-top: 10px;">Add Question</button>
+          <input type="number" id="new-question-sort" placeholder="Sort Order (e.g. 1, 2, 3)" value="0" style="margin-top: 8px;">
+          
+          <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button type="submit" id="save-q-btn">Save Question</button>
+            <button type="button" id="cancel-edit-btn" onclick="resetQuestionForm()" style="background: #6b7280; display: none;">Cancel</button>
+          </div>
         </form>
         <div id="questions-list-container" style="margin-top: 1.5rem;"></div>
       </div>

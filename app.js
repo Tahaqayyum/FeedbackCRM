@@ -113,16 +113,17 @@ let feedbackAnswers = {};
 
 async function openFeedbackForm() {
   switchScreen('feedback-form-screen');
-  const { data, error } = await db.from('feedback_questions').select('*');
+  // Sirf active questions fetch honge aur sort_order ke mutabiq arrange honge
+  const { data, error } = await db.from('feedback_questions').select('*').eq('is_active', true).order('sort_order', { ascending: true });
   const container = document.getElementById('dynamic-questions-container');
   const submitSection = document.getElementById('feedback-submit-section');
   
   if (!container) return;
   container.innerHTML = '';
-  if (submitSection) submitSection.style.display = 'none'; // Hide submit initially
+  if (submitSection) submitSection.style.display = 'none';
 
   if (error || !data || data.length === 0) {
-    container.innerHTML = `<p style="color: #ef4444; text-align:center;">No feedback questions available.</p>`;
+    container.innerHTML = `<p style="color: #ef4444; text-align:center;">No active feedback questions available.</p>`;
     return;
   }
 
@@ -370,24 +371,50 @@ async function deleteUser(id) {
   }
 }
 
-// ==================== FEEDBACK QUESTIONS (ADMIN) ====================
+// ==================== ADMIN: FEEDBACK QUESTIONS MANAGEMENT (CRUD + Sort + Status) ====================
 document.getElementById('add-question-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  const editId = document.getElementById('edit-question-id').value;
   const text = document.getElementById('new-question-text').value.trim();
   const options = document.getElementById('new-question-options').value.trim();
-  
-  const { error } = await db.from('feedback_questions').insert([{ question_text: text, options: options }]);
-  if (!error) {
-    alert('Question added successfully!');
-    document.getElementById('add-question-form').reset();
-    loadQuestionsList();
+  const sortOrder = parseInt(document.getElementById('new-question-sort').value) || 0;
+
+  if (editId) {
+    // Update existing question
+    const { error } = await db.from('feedback_questions').update({
+      question_text: text,
+      options: options,
+      sort_order: sortOrder
+    }).eq('id', editId);
+
+    if (error) {
+      alert('Error updating question: ' + error.message);
+    } else {
+      alert('Question updated successfully!');
+      resetQuestionForm();
+      loadQuestionsList();
+    }
   } else {
-    alert('Error: ' + error.message);
+    // Insert new question
+    const { error } = await db.from('feedback_questions').insert([{
+      question_text: text,
+      options: options,
+      sort_order: sortOrder,
+      is_active: true
+    }]);
+
+    if (error) {
+      alert('Error adding question: ' + error.message);
+    } else {
+      alert('Question added successfully!');
+      resetQuestionForm();
+      loadQuestionsList();
+    }
   }
 });
 
 async function loadQuestionsList() {
-  const { data } = await db.from('feedback_questions').select('*');
+  const { data } = await db.from('feedback_questions').select('*').order('sort_order', { ascending: true });
   const container = document.getElementById('questions-list-container');
   if (!container) return;
   
@@ -396,17 +423,73 @@ async function loadQuestionsList() {
     return;
   }
 
-  let html = `<table><thead><tr><th>Question</th><th>Options</th><th>Action</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Order</th><th>Question & Options</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
   data.forEach(q => {
-    html += `<tr><td>${q.question_text}</td><td>${q.options || '-'}</td><td><button onclick="deleteQuestion('${q.id}')" style="background:#ef4444; padding:5px; width:auto;">Delete</button></td></tr>`;
+    const statusColor = q.is_active ? '#10b981' : '#ef4444';
+    const statusText = q.is_active ? 'Active' : 'Inactive';
+    
+    html += `
+      <tr>
+        <td style="text-align: center; font-weight: bold;">${q.sort_order}</td>
+        <td>
+          <strong>${q.question_text}</strong><br>
+          <small style="color: #6b7280;">Options: ${q.options || '-'}</small>
+        </td>
+        <td><span style="color: ${statusColor}; font-weight: 600;">${statusText}</span></td>
+        <td>
+          <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+            <button onclick="editQuestion('${q.id}', '${q.question_text.replace(/'/g, "\\'")}', '${q.options.replace(/'/g, "\\'")}', ${q.sort_order})" style="background: #3b82f6; padding: 4px 8px; font-size: 0.8rem; width: auto; margin:0;">Edit</button>
+            <button onclick="toggleQuestionStatus('${q.id}', ${q.is_active})" style="background: #f59e0b; padding: 4px 8px; font-size: 0.8rem; width: auto; margin:0;">${q.is_active ? 'Deactivate' : 'Activate'}</button>
+            <button onclick="deleteQuestion('${q.id}')" style="background: #ef4444; padding: 4px 8px; font-size: 0.8rem; width: auto; margin:0;">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `;
   });
   html += `</tbody></table>`;
   container.innerHTML = html;
 }
 
+function editQuestion(id, text, options, sortOrder) {
+  document.getElementById('edit-question-id').value = id;
+  document.getElementById('new-question-text').value = text;
+  document.getElementById('new-question-options').value = options;
+  document.getElementById('new-question-sort').value = sortOrder;
+  
+  document.getElementById('form-mode-label').innerText = 'Edit Question';
+  document.getElementById('save-q-btn').innerText = 'Update Question';
+  document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetQuestionForm() {
+  document.getElementById('add-question-form').reset();
+  document.getElementById('edit-question-id').value = '';
+  document.getElementById('form-mode-label').innerText = 'Add New Question';
+  document.getElementById('save-q-btn').innerText = 'Save Question';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+  document.getElementById('new-question-sort').value = '0';
+}
+
+async function toggleQuestionStatus(id, currentStatus) {
+  const newStatus = !currentStatus;
+  const { error } = await db.from('feedback_questions').update({ is_active: newStatus }).eq('id', id);
+  if (!error) {
+    loadQuestionsList();
+  } else {
+    alert('Error updating status: ' + error.message);
+  }
+}
+
 async function deleteQuestion(id) {
-  await db.from('feedback_questions').delete().eq('id', id);
-  loadQuestionsList();
+  if (confirm('Are you sure you want to delete this question?')) {
+    const { error } = await db.from('feedback_questions').delete().eq('id', id);
+    if (!error) {
+      loadQuestionsList();
+    } else {
+      alert('Error deleting question: ' + error.message);
+    }
+  }
 }
 
 // ==================== FEEDBACK REPORTS & EXPORT (Single Line Table View) ====================
