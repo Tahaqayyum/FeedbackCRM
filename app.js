@@ -1,3 +1,4 @@
+// ==================== SUPABASE CONFIGURATION ====================
 const SUPABASE_URL = 'https://biojkrvccatxvqgujmbg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_6qAOMcKq6qG4e6qVGlPEDQ_ykuaMo8n';
 
@@ -5,6 +6,8 @@ const SUPABASE_ANON_KEY = 'sb_publishable_6qAOMcKq6qG4e6qVGlPEDQ_ykuaMo8n';
 if (!window.dbInstance) {
   window.dbInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
+// Both variables mapped safely so neither db nor supabase throws undefined error
+var db = window.dbInstance;
 var supabase = window.dbInstance;
 
 // Global State
@@ -20,7 +23,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 async function loadAppSettings() {
   try {
-    const { data, error } = await supabase.from('settings').select('*').limit(1).single();
+    const { data, error } = await db.from('settings').select('*').limit(1).single();
     if (data) {
       applyTheme(data.primary_color, data.body_color, data.logo_url);
     }
@@ -35,9 +38,14 @@ function applyTheme(primary, bodyBg, logoUrl) {
   document.documentElement.style.setProperty('--body-bg', bodyBg || '#f3f4f6');
 
   if (logoUrl) {
-    document.getElementById('splash-logo').src = logoUrl;
-    document.getElementById('form-logo').src = logoUrl;
-    document.getElementById('admin-logo').src = logoUrl;
+    const splashLogo = document.getElementById('splash-logo');
+    const formLogo = document.getElementById('form-logo');
+    const adminLogo = document.getElementById('admin-logo');
+    const dashLogo = document.getElementById('dashboard-logo');
+    if (splashLogo) splashLogo.src = logoUrl;
+    if (formLogo) formLogo.src = logoUrl;
+    if (adminLogo) adminLogo.src = logoUrl;
+    if (dashLogo) dashLogo.src = logoUrl;
   }
 }
 
@@ -47,8 +55,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   const username = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value.trim();
 
-  // Query Supabase profiles table
-  const { data, error } = await supabase
+  // Query Supabase profiles table using limit(1) to prevent 406 errors
+  const { data, error } = await db
     .from('profiles')
     .select('*')
     .eq('username', username)
@@ -60,7 +68,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Yahan 'user' variable define kiya gaya hai
+  // Defined 'user' variable safely
   const user = data[0];
 
   if (user.status === 'deactive') {
@@ -68,12 +76,12 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Redirect based on role (Single clean block)
+  // Redirect based on role
   if (user.role === 'admin') {
     switchScreen('admin-screen');
     loadAdminDashboard();
   } else {
-    switchScreen('user-dashboard-screen'); // 2 buttons wala screen
+    switchScreen('user-dashboard-screen'); // 2 buttons user dashboard
   }
 });
 
@@ -93,7 +101,7 @@ document.getElementById('customer-form').addEventListener('submit', async (e) =>
   const name = document.getElementById('cust-name').value.trim();
   const mobile = document.getElementById('cust-mobile').value.trim();
 
-  const { error } = await supabase.from('customers').insert([{ name, mobile }]);
+  const { error } = await db.from('customers').insert([{ name, mobile }]);
 
   if (error) {
     alert('Error saving record: ' + error.message);
@@ -112,6 +120,57 @@ document.getElementById('customer-form').addEventListener('submit', async (e) =>
   document.getElementById('customer-form').reset();
 });
 
+// ==================== FEEDBACK FORM LOGIC ====================
+async function openFeedbackForm() {
+  switchScreen('feedback-form-screen');
+  const { data, error } = await db.from('feedback_questions').select('*').eq('is_active', true);
+  const container = document.getElementById('dynamic-questions-container');
+  container.innerHTML = '';
+
+  if (data && data.length > 0) {
+    data.forEach((q, index) => {
+      container.innerHTML += `
+        <div style="margin-bottom: 15px;">
+          <label style="font-weight: 600; display:block; margin-bottom:5px;">${index + 1}. ${q.question_text}</label>
+          <input type="text" name="answer_${q.id}" placeholder="Enter answer..." required style="margin: 0;">
+        </div>
+      `;
+    });
+  } else {
+    container.innerHTML = `<p style="color: #ef4444; text-align:center;">No feedback questions available. Ask admin to add questions.</p>`;
+  }
+}
+
+document.getElementById('submit-feedback-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('fb-cust-name').value.trim();
+  const mobile = document.getElementById('fb-cust-mobile').value.trim();
+  
+  const { data: questions } = await db.from('feedback_questions').select('id').eq('is_active', true);
+  
+  if (!questions || questions.length === 0) {
+    alert('No active questions found.');
+    return;
+  }
+
+  for (let q of questions) {
+    const inputField = document.querySelector(`input[name="answer_${q.id}"]`);
+    if (inputField) {
+      const inputVal = inputField.value.trim();
+      await db.from('customer_feedbacks').insert([{
+        customer_name: name,
+        customer_mobile: mobile,
+        question_id: q.id,
+        answer: inputVal
+      }]);
+    }
+  }
+
+  alert('Feedback submitted successfully!');
+  document.getElementById('submit-feedback-form').reset();
+  switchScreen('user-dashboard-screen');
+});
+
 // ==================== ADMIN DASHBOARD & TABS ====================
 function switchTab(index) {
   const btns = document.querySelectorAll('.tab-btn');
@@ -126,6 +185,8 @@ function switchTab(index) {
 
   if (index === 0 || index === 1) loadCustomers();
   if (index === 2) loadUsersList();
+  if (index === 4) loadQuestionsList();
+  if (index === 5) loadFeedbacksReport();
 }
 
 async function loadAdminDashboard() {
@@ -133,7 +194,7 @@ async function loadAdminDashboard() {
 }
 
 async function loadCustomers() {
-  const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
+  const { data, error } = await db.from('customers').select('*').order('created_at', { ascending: false });
   if (!error && data) {
     allCustomers = data;
     renderCustomerTable(allCustomers);
@@ -142,6 +203,7 @@ async function loadCustomers() {
 
 function renderCustomerTable(customers) {
   const tbody = document.getElementById('customer-table-body');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
   if (customers.length === 0) {
@@ -173,86 +235,10 @@ function filterCustomerList() {
   renderCustomerTable(filtered);
 }
 
-// Open Feedback Form & Load Questions
-async function openFeedbackForm() {
-  switchScreen('feedback-form-screen');
-  const { data, error } = await db.from('feedback_questions').select('*').eq('is_active', true);
-  const container = document.getElementById('dynamic-questions-container');
-  container.innerHTML = '';
-
-  if (data && data.length > 0) {
-    data.forEach((q, index) => {
-      container.innerHTML += `
-        <div style="margin-bottom: 15px;">
-          <label style="font-weight: 600;">${index + 1}. ${q.question_text}</label>
-          <input type="text" name="answer_${q.id}" placeholder="Enter answer..." required style="margin-top: 5px;">
-        </div>
-      `;
-    });
-  } else {
-    container.innerHTML = `<p style="color: red;">No feedback questions available. Ask admin to add questions.</p>`;
-  }
-}
-
-// Submit Feedback Handler
-document.getElementById('submit-feedback-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const name = document.getElementById('fb-cust-name').value.trim();
-  const mobile = document.getElementById('fb-cust-mobile').value.trim();
-  
-  const { data: questions } = await db.from('feedback_questions').select('id').eq('is_active', true);
-  
-  if (!questions || questions.length === 0) return;
-
-  for (let q of questions) {
-    const inputVal = document.querySelector(`input[name="answer_${q.id}"]`).value.trim();
-    await db.from('customer_feedbacks').insert([{
-      customer_name: name,
-      customer_mobile: mobile,
-      question_id: q.id,
-      answer: inputVal
-    }]);
-  }
-
-  alert('Feedback submitted successfully!');
-  document.getElementById('submit-feedback-form').reset();
-  switchScreen('user-dashboard-screen');
-});
-
-// Admin: Add Question
-document.getElementById('add-question-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const text = document.getElementById('new-question-text').value.trim();
-  const { error } = await db.from('feedback_questions').insert([{ question_text: text }]);
-  if (!error) {
-    alert('Question added successfully!');
-    document.getElementById('new-question-text').value = '';
-    loadQuestionsList();
-  }
-});
-
-async function loadQuestionsList() {
-  const { data } = await db.from('feedback_questions').select('*');
-  const container = document.getElementById('questions-list-container');
-  if (!container) return;
-  
-  let html = `<table><thead><tr><th>Question</th><th>Action</th></tr></thead><tbody>`;
-  data.forEach(q => {
-    html += `<tr><td>${q.question_text}</td><td><button onclick="deleteQuestion('${q.id}')" style="background:#ef4444; padding:5px; width:auto;">Delete</button></td></tr>`;
-  });
-  html += `</tbody></table>`;
-  container.innerHTML = html;
-}
-
-async function deleteQuestion(id) {
-  await db.from('feedback_questions').delete().eq('id', id);
-  loadQuestionsList();
-}
-
 // ==================== EXCEL EXPORT WITH FILTERS ====================
 async function exportToExcel() {
   const filterType = document.getElementById('report-filter').value;
-  let query = supabase.from('customers').select('*');
+  let query = db.from('customers').select('*');
 
   const now = new Date();
   if (filterType === 'day') {
@@ -285,13 +271,13 @@ async function exportToExcel() {
 }
 
 // ==================== USER MANAGEMENT ====================
-document.getElementById('add-user-form').addEventListener('submit', async (e) => {
+document.getElementById('add-user-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('new-username').value.trim();
   const password = document.getElementById('new-password').value.trim();
   const role = document.getElementById('new-role').value;
 
-  const { error } = await supabase.from('profiles').insert([{ username, password, role, status: 'active' }]);
+  const { error } = await db.from('profiles').insert([{ username, password, role, status: 'active' }]);
   if (error) {
     alert('Error adding user: ' + error.message);
   } else {
@@ -302,8 +288,9 @@ document.getElementById('add-user-form').addEventListener('submit', async (e) =>
 });
 
 async function loadUsersList() {
-  const { data, error } = await supabase.from('profiles').select('*');
+  const { data, error } = await db.from('profiles').select('*');
   const container = document.getElementById('users-list-container');
+  if (!container) return;
   container.innerHTML = '<h4>Existing Users</h4>';
 
   if (data && data.length > 0) {
@@ -328,15 +315,116 @@ async function loadUsersList() {
 
 async function toggleUserStatus(id, currentStatus) {
   const newStatus = currentStatus === 'active' ? 'deactive' : 'active';
-  await supabase.from('profiles').update({ status: newStatus }).eq('id', id);
+  await db.from('profiles').update({ status: newStatus }).eq('id', id);
   loadUsersList();
 }
 
 async function deleteUser(id) {
   if (confirm('Are you sure you want to delete this user?')) {
-    await supabase.from('profiles').delete().eq('id', id);
+    await db.from('profiles').delete().eq('id', id);
     loadUsersList();
   }
+}
+
+// ==================== FEEDBACK QUESTIONS (ADMIN) ====================
+document.getElementById('add-question-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = document.getElementById('new-question-text').value.trim();
+  const { error } = await db.from('feedback_questions').insert([{ question_text: text }]);
+  if (!error) {
+    alert('Question added successfully!');
+    document.getElementById('new-question-text').value = '';
+    loadQuestionsList();
+  } else {
+    alert('Error: ' + error.message);
+  }
+});
+
+async function loadQuestionsList() {
+  const { data } = await db.from('feedback_questions').select('*');
+  const container = document.getElementById('questions-list-container');
+  if (!container) return;
+  
+  if (!data || data.length === 0) {
+    container.innerHTML = `<p>No questions added yet.</p>`;
+    return;
+  }
+
+  let html = `<table><thead><tr><th>Question</th><th>Action</th></tr></thead><tbody>`;
+  data.forEach(q => {
+    html += `<tr><td>${q.question_text}</td><td><button onclick="deleteQuestion('${q.id}')" style="background:#ef4444; padding:5px; width:auto;">Delete</button></td></tr>`;
+  });
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+}
+
+async function deleteQuestion(id) {
+  await db.from('feedback_questions').delete().eq('id', id);
+  loadQuestionsList();
+}
+
+// ==================== FEEDBACK REPORTS & EXPORT ====================
+async function loadFeedbacksReport() {
+  const { data, error } = await db.from('customer_feedbacks').select(`*, feedback_questions(question_text)`).order('created_at', { ascending: false });
+  const container = document.getElementById('feedbacks-table-container');
+  if (!container) return;
+
+  if (error || !data || data.length === 0) {
+    container.innerHTML = `<p>No feedbacks found.</p>`;
+    return;
+  }
+
+  let html = `<table><thead><tr><th>Customer Name</th><th>Mobile</th><th>Question</th><th>Answer</th><th>Date</th></tr></thead><tbody>`;
+  data.forEach(f => {
+    const qText = f.feedback_questions ? f.feedback_questions.question_text : 'N/A';
+    html += `
+      <tr>
+        <td>${f.customer_name}</td>
+        <td>${f.customer_mobile}</td>
+        <td>${qText}</td>
+        <td>${f.answer}</td>
+        <td>${new Date(f.created_at).toLocaleString()}</td>
+      </tr>
+    `;
+  });
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+}
+
+async function exportFeedbackExcel() {
+  const filterType = document.getElementById('fb-report-filter').value;
+  let query = db.from('customer_feedbacks').select(`*, feedback_questions(question_text)`);
+
+  const now = new Date();
+  if (filterType === 'day') {
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    query = query.gte('created_at', startOfDay);
+  } else if (filterType === 'week') {
+    const firstDayOfWeek = new Date(now.setDate(now.getDate() - now.getDay())).toISOString();
+    query = query.gte('created_at', firstDayOfWeek);
+  } else if (filterType === 'month') {
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    query = query.gte('created_at', startOfMonth);
+  }
+
+  const { data, error } = await query;
+  if (error || !data || data.length === 0) {
+    alert('No feedback data found for selected filter.');
+    return;
+  }
+
+  const excelData = data.map(item => ({
+    'Customer Name': item.customer_name,
+    'Mobile Number': item.customer_mobile,
+    'Question': item.feedback_questions ? item.feedback_questions.question_text : 'N/A',
+    'Answer': item.answer,
+    'Date Submitted': new Date(item.created_at).toLocaleString()
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(excelData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Feedbacks Report");
+  XLSX.writeFile(workbook, `Customer_Feedbacks_${filterType}.xlsx`);
 }
 
 // ==================== SETTINGS & BRANDING ====================
@@ -345,8 +433,7 @@ async function saveSettings() {
   const primary_color = document.getElementById('setting-primary-color').value;
   const body_color = document.getElementById('setting-body-color').value;
 
-  // Upsert settings row (assuming row id = 1)
-  const { error } = await supabase.from('settings').upsert({ id: 1, logo_url, primary_color, body_color });
+  const { error } = await db.from('settings').upsert({ id: 1, logo_url, primary_color, body_color });
 
   if (error) {
     alert('Error saving settings: ' + error.message);
