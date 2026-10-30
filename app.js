@@ -105,7 +105,7 @@ document.getElementById('customer-form').addEventListener('submit', async (e) =>
   document.getElementById('customer-form').reset();
 });
 
-// ==================== FEEDBACK FORM LOGIC (WithOptions & Comment Box) ====================
+// ==================== FEEDBACK FORM LOGIC (Single Comment Box) ====================
 async function openFeedbackForm() {
   switchScreen('feedback-form-screen');
   const { data, error } = await db.from('feedback_questions').select('*');
@@ -129,8 +129,7 @@ async function openFeedbackForm() {
       container.innerHTML += `
         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <label style="font-weight: 600; display:block; margin-bottom:8px;">${index + 1}. ${q.question_text}</label>
-          <div style="margin-bottom: 10px;">${optionsHtml}</div>
-          <textarea name="comment_${q.id}" placeholder="Optional comment / notes for this question..." style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; resize: vertical; height: 60px; margin: 0;"></textarea>
+          <div>${optionsHtml}</div>
         </div>
       `;
     });
@@ -143,6 +142,7 @@ document.getElementById('submit-feedback-form').addEventListener('submit', async
   e.preventDefault();
   const name = document.getElementById('fb-cust-name').value.trim();
   const mobile = document.getElementById('fb-cust-mobile').value.trim();
+  const globalComment = document.getElementById('global-feedback-comment').value.trim();
   
   const { data: questions } = await db.from('feedback_questions').select('id');
   
@@ -151,14 +151,14 @@ document.getElementById('submit-feedback-form').addEventListener('submit', async
     return;
   }
 
+  // Sabhi answers aur single comment ko database mein insert karna
   for (let q of questions) {
     const selectedOpt = document.querySelector(`input[name="answer_${q.id}"]:checked`);
-    const commentField = document.querySelector(`textarea[name="comment_${q.id}"]`);
     
     if (selectedOpt) {
       const answerVal = selectedOpt.value;
-      const commentVal = commentField ? commentField.value.trim() : '';
-      const finalAnswer = commentVal ? `${answerVal} (Comment: ${commentVal})` : answerVal;
+      // Agar global comment hai toh usay answer ke sath attach kar dein ya alag save karein
+      const finalAnswer = globalComment ? `${answerVal} [Note: ${globalComment}]` : answerVal;
 
       await db.from('customer_feedbacks').insert([{
         customer_name: name,
@@ -173,6 +173,7 @@ document.getElementById('submit-feedback-form').addEventListener('submit', async
   document.getElementById('submit-feedback-form').reset();
   switchScreen('user-dashboard-screen');
 });
+
 
 // ==================== ADMIN DASHBOARD & TABS ====================
 function switchTab(index) {
