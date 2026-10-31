@@ -168,16 +168,15 @@ function renderCurrentQuestion() {
     if (q.options) {
       const optList = q.options.split(',').map(o => o.trim());
       
-          // Exact 3D Emoji CDN Links matching your reference
       const emojiMap = {
-        'poor': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Disappointed%20Face.png',
-        'bad': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Neutral%20Face.png',
+        'poor': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Face%20with%20Tongue.png',
+        'bad': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Disappointed%20Face.png',
         'fair': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Confused%20Face.png',
-        'average': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Relieved%20Face.png',
-        'good': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Face%20with%20Tongue.png',
+        'average': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Neutral%20Face.png',
+        'good': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Relieved%20Face.png',
         'excellent': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Smiling%20Face%20with%20Heart-Eyes.png'
       };
-      
+
       optList.forEach(opt => {
         const lowerOpt = opt.toLowerCase();
         let emojiUrl = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Smiling%20Face%20with%20Smiling%20Eyes.png';
@@ -190,7 +189,7 @@ function renderCurrentQuestion() {
         }
 
         optionsHtml += `
-          <label class="emoji-card" onclick="selectEmojiOption(this, '${q.question_text.replace(/'/g, "\\'")}', '${opt.replace(/'/g, "\\'")}')">
+          <label class="emoji-card" onclick="handleEmojiSelect(this, '${q.question_text.replace(/'/g, "\\'")}', '${opt.replace(/'/g, "\\'")}')">
             <input type="radio" name="answer_${q.id}" value="${opt}">
             <img src="${emojiUrl}" alt="${opt}">
             <span>${opt}</span>
@@ -217,8 +216,7 @@ function renderCurrentQuestion() {
   }
 }
 
-function selectEmojiOption(cardElement, qText, answerVal) {
-  // Visual selection highlight
+function handleEmojiSelect(cardElement, qText, answerVal) {
   const parentGrid = cardElement.parentElement;
   parentGrid.querySelectorAll('.emoji-card').forEach(c => c.classList.remove('selected'));
   cardElement.classList.add('selected');
@@ -228,7 +226,7 @@ function selectEmojiOption(cardElement, qText, answerVal) {
   setTimeout(() => {
     currentQIndex++;
     renderCurrentQuestion();
-  }, 350);
+  }, 300);
 }
 
 //render question end here
