@@ -9,6 +9,8 @@ var db = window.dbInstance;
 var supabase = window.dbInstance;
 
 let allCustomers = [];
+let currentFeedbackCategory = 'instore';
+let currentAdminQCategory = 'instore';
 
 window.addEventListener('DOMContentLoaded', async () => {
   if ('serviceWorker' in navigator) {
@@ -19,7 +21,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 async function loadAppSettings() {
   try {
-    const { data, error } = await db.from('settings').select('*').limit(1).single();
+    const { data } = await db.from('settings').select('*').limit(1).single();
     if (data) {
       applyTheme(data.primary_color, data.body_color, data.logo_url);
     }
@@ -105,7 +107,21 @@ document.getElementById('customer-form').addEventListener('submit', async (e) =>
   document.getElementById('customer-form').reset();
 });
 
-// ==================== FEEDBACK FORM LOGIC (Single Comment Box) ====================
+// ==================== FEEDBACK CATEGORY MODAL ====================
+function openCategoryModal() {
+  document.getElementById('category-modal').style.display = 'flex';
+}
+
+function closeCategoryModal() {
+  document.getElementById('category-modal').style.display = 'none';
+}
+
+function selectFeedbackCategory(category) {
+  currentFeedbackCategory = category;
+  closeCategoryModal();
+  openFeedbackForm();
+}
+
 // ==================== STEP-BY-STEP FEEDBACK FLOW ====================
 let activeQuestions = [];
 let currentQIndex = 0;
@@ -113,8 +129,14 @@ let feedbackAnswers = {};
 
 async function openFeedbackForm() {
   switchScreen('feedback-form-screen');
-  // Sirf active questions fetch honge aur sort_order ke mutabiq arrange honge
-  const { data, error } = await db.from('feedback_questions').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+  document.getElementById('feedback-screen-title').innerText = `Customer Feedback (${currentFeedbackCategory.toUpperCase()})`;
+  
+  const { data, error } = await db.from('feedback_questions')
+    .select('*')
+    .eq('category', currentFeedbackCategory)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+
   const container = document.getElementById('dynamic-questions-container');
   const submitSection = document.getElementById('feedback-submit-section');
   
@@ -123,7 +145,7 @@ async function openFeedbackForm() {
   if (submitSection) submitSection.style.display = 'none';
 
   if (error || !data || data.length === 0) {
-    container.innerHTML = `<p style="color: #ef4444; text-align:center;">No active feedback questions available.</p>`;
+    container.innerHTML = `<p style="color: #ef4444; text-align:center;">No active feedback questions available for ${currentFeedbackCategory}.</p>`;
     return;
   }
 
@@ -144,7 +166,7 @@ function renderCurrentQuestion() {
       const optList = q.options.split(',').map(o => o.trim());
       optList.forEach(opt => {
         optionsHtml += `
-          <label style="display: block; margin: 10px 0; font-weight: normal; cursor: pointer; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; transition: 0.2s;">
+          <label style="display: block; margin: 10px 0; font-weight: normal; cursor: pointer; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px;">
             <input type="radio" name="answer_${q.id}" value="${opt}" onclick="handleAnswerSelect('${q.question_text.replace(/'/g, "\\'")}', '${opt.replace(/'/g, "\\'")}')" style="width: auto; margin-right: 10px;"> ${opt}
           </label>
         `;
@@ -152,14 +174,13 @@ function renderCurrentQuestion() {
     }
 
     container.innerHTML = `
-      <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); animation: fadeIn 0.4s ease-in-out;">
+      <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <div style="font-size: 0.85rem; color: #4f46e5; font-weight: 600; margin-bottom: 5px;">Question ${currentQIndex + 1} of ${activeQuestions.length}</div>
         <label style="font-weight: 600; display:block; margin-bottom: 12px; font-size: 1.05rem;">${q.question_text}</label>
         <div>${optionsHtml}</div>
       </div>
     `;
   } else {
-    // All questions answered: hide question container, show success note & submit section
     container.innerHTML = `
       <div style="background: #ecfdf5; color: #065f46; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 15px;">
         <i class="fa-solid fa-circle-check" style="font-size: 1.5rem; margin-bottom: 5px; display: block;"></i>
@@ -172,8 +193,6 @@ function renderCurrentQuestion() {
 
 function handleAnswerSelect(qText, answerVal) {
   feedbackAnswers[qText] = answerVal;
-  
-  // Smooth transition delay to the next question
   setTimeout(() => {
     currentQIndex++;
     renderCurrentQuestion();
@@ -192,11 +211,24 @@ document.getElementById('submit-feedback-form')?.addEventListener('submit', asyn
     return;
   }
 
+  // Automatic sentiment analysis (if any answer contains Bad, Poor, Worst, etc., mark as Bad)
+  let sentiment = 'Good';
+  const negativeKeywords = ['bad', 'poor', 'worst', 'poor', 'average', 'disappointing'];
+  for (let val of Object.values(feedbackAnswers)) {
+    if (negativeKeywords.some(kw => val.toLowerCase().includes(kw))) {
+      sentiment = 'Bad';
+      break;
+    }
+  }
+
   const { error } = await db.from('customer_feedbacks').insert([{
     customer_name: name,
     customer_mobile: mobile,
+    category: currentFeedbackCategory,
     feedback_data: feedbackAnswers,
-    comment: globalComment
+    comment: globalComment,
+    status: 'Pending',
+    response_type: sentiment
   }]);
 
   if (error) {
@@ -204,14 +236,12 @@ document.getElementById('submit-feedback-form')?.addEventListener('submit', asyn
     return;
   }
 
-  // Show Success Popup Modal for 3 seconds
   const modal = document.getElementById('popup-modal');
   modal.style.display = 'flex';
   setTimeout(() => {
     modal.style.display = 'none';
   }, 3000);
 
-  // Auto clear form and restart feedback form on the same screen (stays on feedback screen)
   document.getElementById('submit-feedback-form').reset();
   openFeedbackForm(); 
 });
@@ -221,12 +251,8 @@ function switchTab(index) {
   const btns = document.querySelectorAll('.tab-btn');
   const contents = document.querySelectorAll('.tab-content');
 
-  btns.forEach((b, i) => {
-    b.classList.toggle('active', i === index);
-  });
-  contents.forEach((c, i) => {
-    c.classList.toggle('active', i === index);
-  });
+  btns.forEach((b, i) => b.classList.toggle('active', i === index));
+  contents.forEach((c, i) => c.classList.toggle('active', i === index));
 
   if (index === 0 || index === 1) loadCustomers();
   if (index === 2) loadUsersList();
@@ -280,98 +306,20 @@ function filterCustomerList() {
   renderCustomerTable(filtered);
 }
 
-// ==================== EXCEL EXPORT WITH FILTERS ====================
-async function exportToExcel() {
-  const filterType = document.getElementById('report-filter').value;
-  let query = db.from('customers').select('*');
-
-  const now = new Date();
-  if (filterType === 'day') {
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-    query = query.gte('created_at', startOfDay);
-  } else if (filterType === 'week') {
-    const firstDayOfWeek = new Date(now.setDate(now.getDate() - now.getDay())).toISOString();
-    query = query.gte('created_at', firstDayOfWeek);
-  } else if (filterType === 'month') {
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    query = query.gte('created_at', startOfMonth);
-  }
-
-  const { data, error } = await query;
-  if (error || !data || data.length === 0) {
-    alert('No data found for selected filter.');
-    return;
-  }
-
-  const excelData = data.map(item => ({
-    'Customer Name': item.name,
-    'Mobile Number': item.mobile,
-    'Date Added': new Date(item.created_at).toLocaleString()
-  }));
-
-  const worksheet = XLSX.utils.json_to_sheet(excelData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Customers Report");
-  XLSX.writeFile(workbook, `Customer_Report_${filterType}.xlsx`);
+// ==================== ADMIN: QUESTIONS MANAGEMENT ====================
+function switchQCategory(category) {
+  currentAdminQCategory = category;
+  const qBtns = document.querySelectorAll('.q-tab-btn');
+  qBtns.forEach(b => {
+    if (b.innerText.toLowerCase().includes(category)) {
+      b.style.backgroundColor = '#4f46e5';
+    } else {
+      b.style.backgroundColor = '#6b7280';
+    }
+  });
+  loadQuestionsList();
 }
 
-// ==================== USER MANAGEMENT ====================
-document.getElementById('add-user-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('new-username').value.trim();
-  const password = document.getElementById('new-password').value.trim();
-  const role = document.getElementById('new-role').value;
-
-  const { error } = await db.from('profiles').insert([{ username, password, role, status: 'active' }]);
-  if (error) {
-    alert('Error adding user: ' + error.message);
-  } else {
-    alert('User added successfully!');
-    document.getElementById('add-user-form').reset();
-    loadUsersList();
-  }
-});
-
-async function loadUsersList() {
-  const { data, error } = await db.from('profiles').select('*');
-  const container = document.getElementById('users-list-container');
-  if (!container) return;
-  container.innerHTML = '<h4>Existing Users</h4>';
-
-  if (data && data.length > 0) {
-    let html = `<table style="margin-top: 10px;"><thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
-    data.forEach(u => {
-      html += `
-        <tr>
-          <td>${u.username}</td>
-          <td>${u.role}</td>
-          <td><span style="color: ${u.status === 'active' ? '#10b981' : '#ef4444'}">${u.status}</span></td>
-          <td>
-            <button onclick="toggleUserStatus('${u.id}', '${u.status}')" style="padding: 4px 8px; font-size: 0.8rem; width: auto; margin:0;">Toggle Status</button>
-            <button onclick="deleteUser('${u.id}')" style="padding: 4px 8px; font-size: 0.8rem; width: auto; background: #ef4444; margin-left: 5px;">Delete</button>
-          </td>
-        </tr>
-      `;
-    });
-    html += `</tbody></table>`;
-    container.innerHTML += html;
-  }
-}
-
-async function toggleUserStatus(id, currentStatus) {
-  const newStatus = currentStatus === 'active' ? 'deactive' : 'active';
-  await db.from('profiles').update({ status: newStatus }).eq('id', id);
-  loadUsersList();
-}
-
-async function deleteUser(id) {
-  if (confirm('Are you sure you want to delete this user?')) {
-    await db.from('profiles').delete().eq('id', id);
-    loadUsersList();
-  }
-}
-
-// ==================== ADMIN: FEEDBACK QUESTIONS MANAGEMENT (CRUD + Sort + Status) ====================
 document.getElementById('add-question-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const editId = document.getElementById('edit-question-id').value;
@@ -380,32 +328,29 @@ document.getElementById('add-question-form')?.addEventListener('submit', async (
   const sortOrder = parseInt(document.getElementById('new-question-sort').value) || 0;
 
   if (editId) {
-    // Update existing question
     const { error } = await db.from('feedback_questions').update({
       question_text: text,
       options: options,
       sort_order: sortOrder
     }).eq('id', editId);
 
-    if (error) {
-      alert('Error updating question: ' + error.message);
-    } else {
+    if (error) alert('Error: ' + error.message);
+    else {
       alert('Question updated successfully!');
       resetQuestionForm();
       loadQuestionsList();
     }
   } else {
-    // Insert new question
     const { error } = await db.from('feedback_questions').insert([{
       question_text: text,
       options: options,
       sort_order: sortOrder,
+      category: currentAdminQCategory,
       is_active: true
     }]);
 
-    if (error) {
-      alert('Error adding question: ' + error.message);
-    } else {
+    if (error) alert('Error: ' + error.message);
+    else {
       alert('Question added successfully!');
       resetQuestionForm();
       loadQuestionsList();
@@ -414,12 +359,16 @@ document.getElementById('add-question-form')?.addEventListener('submit', async (
 });
 
 async function loadQuestionsList() {
-  const { data } = await db.from('feedback_questions').select('*').order('sort_order', { ascending: true });
+  const { data } = await db.from('feedback_questions')
+    .select('*')
+    .eq('category', currentAdminQCategory)
+    .order('sort_order', { ascending: true });
+
   const container = document.getElementById('questions-list-container');
   if (!container) return;
   
   if (!data || data.length === 0) {
-    container.innerHTML = `<p>No questions added yet.</p>`;
+    container.innerHTML = `<p>No questions added for ${currentAdminQCategory} yet.</p>`;
     return;
   }
 
@@ -472,38 +421,39 @@ function resetQuestionForm() {
 }
 
 async function toggleQuestionStatus(id, currentStatus) {
-  const newStatus = !currentStatus;
-  const { error } = await db.from('feedback_questions').update({ is_active: newStatus }).eq('id', id);
-  if (!error) {
-    loadQuestionsList();
-  } else {
-    alert('Error updating status: ' + error.message);
-  }
+  await db.from('feedback_questions').update({ is_active: !currentStatus }).eq('id', id);
+  loadQuestionsList();
 }
 
 async function deleteQuestion(id) {
   if (confirm('Are you sure you want to delete this question?')) {
-    const { error } = await db.from('feedback_questions').delete().eq('id', id);
-    if (!error) {
-      loadQuestionsList();
-    } else {
-      alert('Error deleting question: ' + error.message);
-    }
+    await db.from('feedback_questions').delete().eq('id', id);
+    loadQuestionsList();
   }
 }
 
-// ==================== FEEDBACK REPORTS & EXPORT (Single Line Table View) ====================
+// ==================== FEEDBACK REPORTS & FILTERS ====================
 async function loadFeedbacksReport() {
-  const { data, error } = await db.from('customer_feedbacks').select('*').order('created_at', { ascending: false });
+  const channelFilter = document.getElementById('filter-channel').value;
+  const sentimentFilter = document.getElementById('filter-sentiment').value;
+  const statusFilter = document.getElementById('filter-status').value;
+
+  let query = db.from('customer_feedbacks').select('*').order('created_at', { ascending: false });
+
+  if (channelFilter !== 'all') query = query.eq('category', channelFilter);
+  if (sentimentFilter !== 'all') query = query.eq('response_type', sentimentFilter);
+  if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+
+  const { data, error } = await query;
   const container = document.getElementById('feedbacks-table-container');
   if (!container) return;
 
   if (error || !data || data.length === 0) {
-    container.innerHTML = `<p>No feedbacks found.</p>`;
+    container.innerHTML = `<p>No feedbacks found matching filters.</p>`;
     return;
   }
 
-  let html = `<table><thead><tr><th>Customer Name</th><th>Mobile</th><th>Responses (Q & A)</th><th>Comment</th><th>Date</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Channel</th><th>Customer Name</th><th>Mobile</th><th>Responses (Q & A)</th><th>Comment</th><th>Sentiment</th><th>Status</th><th>Date</th></tr></thead><tbody>`;
   
   data.forEach(f => {
     let qaString = '';
@@ -513,12 +463,23 @@ async function loadFeedbacksReport() {
         .join(' | ');
     }
 
+    const sentimentColor = f.response_type === 'Good' ? '#10b981' : '#ef4444';
+    const statusColor = f.status === 'Resolved' ? '#10b981' : '#f59e0b';
+
     html += `
       <tr>
+        <td style="text-transform: uppercase; font-weight: bold;">${f.category}</td>
         <td>${f.customer_name}</td>
         <td>${f.customer_mobile}</td>
         <td>${qaString}</td>
         <td>${f.comment || '-'}</td>
+        <td><span style="color: ${sentimentColor}; font-weight: bold;">${f.response_type}</span></td>
+        <td>
+          <select onchange="updateFeedbackStatus('${f.id}', this.value)" style="padding: 4px; font-size: 0.85rem; color: ${statusColor}; font-weight: bold;">
+            <option value="Pending" ${f.status === 'Pending' ? 'selected' : ''}>Pending</option>
+            <option value="Resolved" ${f.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+          </select>
+        </td>
         <td>${new Date(f.created_at).toLocaleString()}</td>
       </tr>
     `;
@@ -527,9 +488,62 @@ async function loadFeedbacksReport() {
   container.innerHTML = html;
 }
 
+async function updateFeedbackStatus(id, newStatus) {
+  const { error } = await db.from('customer_feedbacks').update({ status: newStatus }).eq('id', id);
+  if (error) {
+    alert('Error updating status: ' + error.message);
+  } else {
+    loadFeedbacksReport();
+  }
+}
+
 async function exportFeedbackExcel() {
-  const filterType = document.getElementById('fb-report-filter').value;
+  const channelFilter = document.getElementById('filter-channel').value;
+  const sentimentFilter = document.getElementById('filter-sentiment').value;
+  const statusFilter = document.getElementById('filter-status').value;
+
   let query = db.from('customer_feedbacks').select('*');
+
+  if (channelFilter !== 'all') query = query.eq('category', channelFilter);
+  if (sentimentFilter !== 'all') query = query.eq('response_type', sentimentFilter);
+  if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+
+  const { data, error } = await query;
+  if (error || !data || data.length === 0) {
+    alert('No feedback data found for selected filters.');
+    return;
+  }
+
+  const excelData = data.map(item => {
+    let rowObj = {
+      'Channel': item.category.toUpperCase(),
+      'Customer Name': item.customer_name,
+      'Mobile Number': item.customer_mobile
+    };
+
+    if (item.feedback_data) {
+      for (let [q, a] of Object.entries(item.feedback_data)) {
+        rowObj[q] = a;
+      }
+    }
+
+    rowObj['Comment'] = item.comment || '';
+    rowObj['Sentiment'] = item.response_type;
+    rowObj['Status'] = item.status;
+    rowObj['Date Submitted'] = new Date(item.created_at).toLocaleString();
+    return rowObj;
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(excelData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Feedbacks");
+  XLSX.writeFile(workbook, `Customer_Feedbacks_${channelFilter}.xlsx`);
+}
+
+// ==================== EXCEL EXPORT (Customers) ====================
+async function exportToExcel() {
+  const filterType = document.getElementById('report-filter').value;
+  let query = db.from('customers').select('*');
 
   const now = new Date();
   if (filterType === 'day') {
@@ -545,31 +559,76 @@ async function exportFeedbackExcel() {
 
   const { data, error } = await query;
   if (error || !data || data.length === 0) {
-    alert('No feedback data found for selected filter.');
+    alert('No data found for selected filter.');
     return;
   }
 
-  const excelData = data.map(item => {
-    let rowObj = {
-      'Customer Name': item.customer_name,
-      'Mobile Number': item.customer_mobile
-    };
-
-    if (item.feedback_data) {
-      for (let [q, a] of Object.entries(item.feedback_data)) {
-        rowObj[q] = a;
-      }
-    }
-
-    rowObj['Comment'] = item.comment || '';
-    rowObj['Date Submitted'] = new Date(item.created_at).toLocaleString();
-    return rowObj;
-  });
+  const excelData = data.map(item => ({
+    'Customer Name': item.name,
+    'Mobile Number': item.mobile,
+    'Date Added': new Date(item.created_at).toLocaleString()
+  }));
 
   const worksheet = XLSX.utils.json_to_sheet(excelData);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Feedbacks Report");
-  XLSX.writeFile(workbook, `Customer_Feedbacks_${filterType}.xlsx`);
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Customers Report");
+  XLSX.writeFile(workbook, `Customer_Report_${filterType}.xlsx`);
+}
+
+// ==================== USER MANAGEMENT ====================
+document.getElementById('add-user-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('new-username').value.trim();
+  const password = document.getElementById('new-password').value.trim();
+  const role = document.getElementById('new-role').value;
+
+  const { error } = await db.from('profiles').insert([{ username, password, role, status: 'active' }]);
+  if (error) {
+    alert('Error adding user: ' + error.message);
+  } else {
+    alert('User added successfully!');
+    document.getElementById('add-user-form').reset();
+    loadUsersList();
+  }
+});
+
+async function loadUsersList() {
+  const { data } = await db.from('profiles').select('*');
+  const container = document.getElementById('users-list-container');
+  if (!container) return;
+  container.innerHTML = '<h4>Existing Users</h4>';
+
+  if (data && data.length > 0) {
+    let html = `<table style="margin-top: 10px;"><thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
+    data.forEach(u => {
+      html += `
+        <tr>
+          <td>${u.username}</td>
+          <td>${u.role}</td>
+          <td><span style="color: ${u.status === 'active' ? '#10b981' : '#ef4444'}">${u.status}</span></td>
+          <td>
+            <button onclick="toggleUserStatus('${u.id}', '${u.status}')" style="padding: 4px 8px; font-size: 0.8rem; width: auto; margin:0;">Toggle Status</button>
+            <button onclick="deleteUser('${u.id}')" style="padding: 4px 8px; font-size: 0.8rem; width: auto; background: #ef4444; margin-left: 5px;">Delete</button>
+          </td>
+        </tr>
+      `;
+    });
+    html += `</tbody></table>`;
+    container.innerHTML += html;
+  }
+}
+
+async function toggleUserStatus(id, currentStatus) {
+  const newStatus = currentStatus === 'active' ? 'deactive' : 'active';
+  await db.from('profiles').update({ status: newStatus }).eq('id', id);
+  loadUsersList();
+}
+
+async function deleteUser(id) {
+  if (confirm('Are you sure you want to delete this user?')) {
+    await db.from('profiles').delete().eq('id', id);
+    loadUsersList();
+  }
 }
 
 // ==================== SETTINGS & BRANDING ====================

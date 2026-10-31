@@ -75,6 +75,16 @@ alter table feedback_questions add column if not exists sort_order int default 0
 
 
 
+-- Purani feedback_questions table mein category add karein
+alter table feedback_questions add column if not exists category text default 'instore';
+
+-- customer_feedbacks table ko naye columns ke sath update karein (agar dobara table banana ho ya columns add karne hon)
+alter table customer_feedbacks add column if not exists category text default 'instore';
+alter table customer_feedbacks add column if not exists status text default 'Pending'; -- Pending ya Resolved
+alter table customer_feedbacks add column if not exists response_type text default 'Good'; -- Good ya Bad
+
+
+
 
 
 Supabase Project settings
