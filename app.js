@@ -168,19 +168,19 @@ function renderCurrentQuestion() {
     if (q.options) {
       const optList = q.options.split(',').map(o => o.trim());
       
-      // Emoji URL mapping based on option keywords
+            // Exact 3D Emoji CDN Links matching your reference
       const emojiMap = {
-        'poor': 'https://cdn-icons-png.flaticon.com/512/7429/7429112.png',
-        'bad': 'https://cdn-icons-png.flaticon.com/512/7429/7429102.png',
-        'average': 'https://cdn-icons-png.flaticon.com/512/7429/7429125.png',
-        'good': 'https://cdn-icons-png.flaticon.com/512/7429/7429053.png',
-        'excellent': 'https://cdn-icons-png.flaticon.com/512/7429/7429135.png'
+        'poor': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Face%20with%20Tongue.png',
+        'bad': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Disappointed%20Face.png',
+        'fair': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Confused%20Face.png',
+        'average': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Neutral%20Face.png',
+        'good': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Relieved%20Face.png',
+        'excellent': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Smiling%20Face%20with%20Heart-Eyes.png'
       };
 
       optList.forEach(opt => {
         const lowerOpt = opt.toLowerCase();
-        // Default emoji agar keyword match na ho
-        let emojiUrl = 'https://cdn-icons-png.flaticon.com/512/7429/7429053.png';
+        let emojiUrl = 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Smiling%20Face%20with%20Smiling%20Eyes.png';
         
         for (let key in emojiMap) {
           if (lowerOpt.includes(key)) {
