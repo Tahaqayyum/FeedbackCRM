@@ -154,9 +154,7 @@ async function openFeedbackForm() {
   feedbackAnswers = {};
   renderCurrentQuestion();
 }
-
-//render question start here
-
+// render question start here
 function renderCurrentQuestion() {
   const container = document.getElementById('dynamic-questions-container');
   const submitSection = document.getElementById('feedback-submit-section');
@@ -189,11 +187,10 @@ function renderCurrentQuestion() {
         }
 
         optionsHtml += `
-          <label class="emoji-card" onclick="handleEmojiSelect(this, '${q.question_text.replace(/'/g, "\\'")}', '${opt.replace(/'/g, "\\'")}')">
-            <input type="radio" name="answer_${q.id}" value="${opt}">
+          <div class="emoji-card" data-q="${encodeURIComponent(q.question_text)}" data-val="${encodeURIComponent(opt)}" onclick="handleEmojiCardClick(this)">
             <img src="${emojiUrl}" alt="${opt}">
             <span>${opt}</span>
-          </label>
+          </div>
         `;
       });
     }
@@ -216,17 +213,20 @@ function renderCurrentQuestion() {
   }
 }
 
-function handleEmojiSelect(cardElement, qText, answerVal) {
-  const parentGrid = cardElement.parentElement;
+function handleEmojiCardClick(element) {
+  const qText = decodeURIComponent(element.getAttribute('data-q'));
+  const answerVal = decodeURIComponent(element.getAttribute('data-val'));
+
+  const parentGrid = element.parentElement;
   parentGrid.querySelectorAll('.emoji-card').forEach(c => c.classList.remove('selected'));
-  cardElement.classList.add('selected');
+  element.classList.add('selected');
   
   feedbackAnswers[qText] = answerVal;
   
   setTimeout(() => {
     currentQIndex++;
     renderCurrentQuestion();
-  }, 300);
+  }, 350);
 }
 
 //render question end here
