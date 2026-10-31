@@ -211,9 +211,8 @@ document.getElementById('submit-feedback-form')?.addEventListener('submit', asyn
     return;
   }
 
-  // Automatic sentiment analysis (if any answer contains Bad, Poor, Worst, etc., mark as Bad)
   let sentiment = 'Good';
-  const negativeKeywords = ['bad', 'poor', 'worst', 'poor', 'average', 'disappointing'];
+  const negativeKeywords = ['bad', 'poor', 'worst', 'average', 'disappointing'];
   for (let val of Object.values(feedbackAnswers)) {
     if (negativeKeywords.some(kw => val.toLowerCase().includes(kw))) {
       sentiment = 'Bad';
@@ -309,6 +308,10 @@ function filterCustomerList() {
 // ==================== ADMIN: QUESTIONS MANAGEMENT ====================
 function switchQCategory(category) {
   currentAdminQCategory = category;
+  
+  const catDropdown = document.getElementById('new-question-category');
+  if (catDropdown) catDropdown.value = category;
+
   const qBtns = document.querySelectorAll('.q-tab-btn');
   qBtns.forEach(b => {
     if (b.innerText.toLowerCase().includes(category)) {
@@ -326,12 +329,14 @@ document.getElementById('add-question-form')?.addEventListener('submit', async (
   const text = document.getElementById('new-question-text').value.trim();
   const options = document.getElementById('new-question-options').value.trim();
   const sortOrder = parseInt(document.getElementById('new-question-sort').value) || 0;
+  const selectedCategory = document.getElementById('new-question-category').value;
 
   if (editId) {
     const { error } = await db.from('feedback_questions').update({
       question_text: text,
       options: options,
-      sort_order: sortOrder
+      sort_order: sortOrder,
+      category: selectedCategory
     }).eq('id', editId);
 
     if (error) alert('Error: ' + error.message);
@@ -345,7 +350,7 @@ document.getElementById('add-question-form')?.addEventListener('submit', async (
       question_text: text,
       options: options,
       sort_order: sortOrder,
-      category: currentAdminQCategory,
+      category: selectedCategory,
       is_active: true
     }]);
 
@@ -387,7 +392,7 @@ async function loadQuestionsList() {
         <td><span style="color: ${statusColor}; font-weight: 600;">${statusText}</span></td>
         <td>
           <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-            <button onclick="editQuestion('${q.id}', '${q.question_text.replace(/'/g, "\\'")}', '${q.options.replace(/'/g, "\\'")}', ${q.sort_order})" style="background: #3b82f6; padding: 4px 8px; font-size: 0.8rem; width: auto; margin:0;">Edit</button>
+            <button onclick="editQuestion('${q.id}', '${q.question_text.replace(/'/g, "\\'")}', '${q.options.replace(/'/g, "\\'")}', ${q.sort_order}, '${q.category}')" style="background: #3b82f6; padding: 4px 8px; font-size: 0.8rem; width: auto; margin:0;">Edit</button>
             <button onclick="toggleQuestionStatus('${q.id}', ${q.is_active})" style="background: #f59e0b; padding: 4px 8px; font-size: 0.8rem; width: auto; margin:0;">${q.is_active ? 'Deactivate' : 'Activate'}</button>
             <button onclick="deleteQuestion('${q.id}')" style="background: #ef4444; padding: 4px 8px; font-size: 0.8rem; width: auto; margin:0;">Delete</button>
           </div>
@@ -399,11 +404,14 @@ async function loadQuestionsList() {
   container.innerHTML = html;
 }
 
-function editQuestion(id, text, options, sortOrder) {
+function editQuestion(id, text, options, sortOrder, category) {
   document.getElementById('edit-question-id').value = id;
   document.getElementById('new-question-text').value = text;
   document.getElementById('new-question-options').value = options;
   document.getElementById('new-question-sort').value = sortOrder;
+  
+  const catDropdown = document.getElementById('new-question-category');
+  if (catDropdown && category) catDropdown.value = category;
   
   document.getElementById('form-mode-label').innerText = 'Edit Question';
   document.getElementById('save-q-btn').innerText = 'Update Question';
@@ -418,6 +426,9 @@ function resetQuestionForm() {
   document.getElementById('save-q-btn').innerText = 'Save Question';
   document.getElementById('cancel-edit-btn').style.display = 'none';
   document.getElementById('new-question-sort').value = '0';
+  
+  const catDropdown = document.getElementById('new-question-category');
+  if (catDropdown) catDropdown.value = currentAdminQCategory;
 }
 
 async function toggleQuestionStatus(id, currentStatus) {

@@ -166,7 +166,7 @@
         </div>
       </div>
 
-      <!-- Tab 5: Feedback Questions Management (Instore & Online Tabs) -->
+      <!-- Tab 5: Feedback Questions Management -->
       <div class="tab-content" id="tab-fb-questions">
         <h3>Manage Feedback Questions</h3>
         <div style="margin: 1rem 0; display: flex; gap: 10px;">
@@ -177,6 +177,13 @@
         <form id="add-question-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <input type="hidden" id="edit-question-id" value="">
           <label id="form-mode-label" style="font-weight: 600; color: #4f46e5; margin-bottom: 5px; display:block;">Add New Question</label>
+          
+          <label style="font-size: 0.9rem; margin-top: 5px; display: block;">Select Category:</label>
+          <select id="new-question-category" style="margin-top: 5px; margin-bottom: 10px;">
+            <option value="instore">Instore Shopping</option>
+            <option value="online">Online Shopping</option>
+          </select>
+
           <input type="text" id="new-question-text" placeholder="Enter question text..." required>
           <input type="text" id="new-question-options" placeholder="Options (comma separated, e.g. Good, Average, Bad)" required style="margin-top: 8px;">
           <input type="number" id="new-question-sort" placeholder="Sort Order (e.g. 1, 2, 3)" value="0" style="margin-top: 8px;">
@@ -189,7 +196,7 @@
         <div id="questions-list-container" style="margin-top: 1.5rem;"></div>
       </div>
 
-      <!-- Tab 6: Customer Feedbacks Report (Advanced Filtering & Status) -->
+      <!-- Tab 6: Customer Feedbacks Report -->
       <div class="tab-content" id="tab-fb-reports">
         <h3>Customer Feedbacks Report</h3>
         <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
@@ -228,7 +235,7 @@
     </div>
   </div>
 
-  <!-- CATEGORY SELECTION MODAL (Instore vs Online) -->
+  <!-- CATEGORY SELECTION MODAL -->
   <div id="category-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
     <div style="background: white; padding: 2rem; border-radius: 12px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
       <h3>Select Feedback Channel</h3>
