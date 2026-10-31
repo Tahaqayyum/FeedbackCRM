@@ -155,6 +155,8 @@ async function openFeedbackForm() {
   renderCurrentQuestion();
 }
 
+//render question start here
+
 function renderCurrentQuestion() {
   const container = document.getElementById('dynamic-questions-container');
   const submitSection = document.getElementById('feedback-submit-section');
@@ -162,22 +164,46 @@ function renderCurrentQuestion() {
   if (currentQIndex < activeQuestions.length) {
     const q = activeQuestions[currentQIndex];
     let optionsHtml = '';
+    
     if (q.options) {
       const optList = q.options.split(',').map(o => o.trim());
+      
+      // Emoji URL mapping based on option keywords
+      const emojiMap = {
+        'poor': 'https://cdn-icons-png.flaticon.com/512/7429/7429112.png',
+        'bad': 'https://cdn-icons-png.flaticon.com/512/7429/7429102.png',
+        'average': 'https://cdn-icons-png.flaticon.com/512/7429/7429125.png',
+        'good': 'https://cdn-icons-png.flaticon.com/512/7429/7429053.png',
+        'excellent': 'https://cdn-icons-png.flaticon.com/512/7429/7429135.png'
+      };
+
       optList.forEach(opt => {
+        const lowerOpt = opt.toLowerCase();
+        // Default emoji agar keyword match na ho
+        let emojiUrl = 'https://cdn-icons-png.flaticon.com/512/7429/7429053.png';
+        
+        for (let key in emojiMap) {
+          if (lowerOpt.includes(key)) {
+            emojiUrl = emojiMap[key];
+            break;
+          }
+        }
+
         optionsHtml += `
-          <label style="display: block; margin: 10px 0; font-weight: normal; cursor: pointer; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px;">
-            <input type="radio" name="answer_${q.id}" value="${opt}" onclick="handleAnswerSelect('${q.question_text.replace(/'/g, "\\'")}', '${opt.replace(/'/g, "\\'")}')" style="width: auto; margin-right: 10px;"> ${opt}
+          <label class="emoji-card" onclick="selectEmojiOption(this, '${q.question_text.replace(/'/g, "\\'")}', '${opt.replace(/'/g, "\\'")}')">
+            <input type="radio" name="answer_${q.id}" value="${opt}">
+            <img src="${emojiUrl}" alt="${opt}">
+            <span>${opt}</span>
           </label>
         `;
       });
     }
 
     container.innerHTML = `
-      <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
         <div style="font-size: 0.85rem; color: #4f46e5; font-weight: 600; margin-bottom: 5px;">Question ${currentQIndex + 1} of ${activeQuestions.length}</div>
-        <label style="font-weight: 600; display:block; margin-bottom: 12px; font-size: 1.05rem;">${q.question_text}</label>
-        <div>${optionsHtml}</div>
+        <label style="font-weight: 600; display:block; margin-bottom: 15px; font-size: 1.1rem; color: #1f2937;">${q.question_text}</label>
+        <div class="emoji-options-grid">${optionsHtml}</div>
       </div>
     `;
   } else {
@@ -191,13 +217,21 @@ function renderCurrentQuestion() {
   }
 }
 
-function handleAnswerSelect(qText, answerVal) {
+function selectEmojiOption(cardElement, qText, answerVal) {
+  // Visual selection highlight
+  const parentGrid = cardElement.parentElement;
+  parentGrid.querySelectorAll('.emoji-card').forEach(c => c.classList.remove('selected'));
+  cardElement.classList.add('selected');
+  
   feedbackAnswers[qText] = answerVal;
+  
   setTimeout(() => {
     currentQIndex++;
     renderCurrentQuestion();
   }, 350);
 }
+
+//render question end here
 
 document.getElementById('submit-feedback-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
