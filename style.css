@@ -253,6 +253,26 @@ th {
   animation: fadeIn 0.3s ease;
 }
 
+/* Toast Notifications */
+.alert-toast {
+  background: #fee2e2;
+  color: #991b1b;
+  border-left: 5px solid #ef4444;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 300px;
+  animation: slideInToast 0.3s ease forwards;
+}
+
+@keyframes slideInToast {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 /* Footer Developer Attribution */
 footer {
   text-align: center;

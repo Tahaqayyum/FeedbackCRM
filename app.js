@@ -337,6 +337,80 @@ function filterCustomerList() {
   renderCustomerTable(filtered);
 }
 
+// ==================== REAL-TIME NEGATIVE ALERTS ====================
+async function loadAdminDashboard() {
+  await loadCustomers();
+  initRealtimeAlerts();
+  
+  // Browser notification permission request
+  if (window.Notification && Notification.permission !== 'granted') {
+    Notification.requestPermission();
+  }
+}
+
+function initRealtimeAlerts() {
+  // Purana channel avoid karne ke liye unsubscribe kar sakte hain ya unique channel bana sakte hain
+  if (window.feedbackChannel) {
+    db.removeChannel(window.feedbackChannel);
+  }
+
+  window.feedbackChannel = db.channel('public:customer_feedbacks')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'customer_feedbacks' },
+      (payload) => {
+        const newFeedback = payload.new;
+        
+        // Check agar feedback negative (Bad) hai
+        if (newFeedback.response_type === 'Bad') {
+          const alertMsg = `Negative Feedback Alert! Customer: ${newFeedback.customer_name} (${newFeedback.category.toUpperCase()})`;
+          
+          // 1. In-App Floating Toast Notification Show Karein
+          showToast(alertMsg);
+          
+          // 2. Browser Native Push Notification (Agar tab background mein bhi ho)
+          if (window.Notification && Notification.permission === 'granted') {
+            new Notification("⚠️ Negative Feedback Received!", {
+              body: `${newFeedback.customer_name} gave a bad rating in ${newFeedback.category} shopping.`,
+              icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
+            });
+          }
+
+          // 3. Agar Admin "Feedbacks Report" tab par hai, toh table auto-refresh ho jaye
+          const activeTab = document.querySelector('.tab-content.active');
+          if (activeTab && activeTab.id === 'tab-fb-reports') {
+            loadFeedbacksReport();
+          }
+        }
+      }
+    )
+    .subscribe();
+}
+
+function showToast(message) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = 'alert-toast';
+  toast.innerHTML = `
+    <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem; color: #ef4444;"></i>
+    <div>
+      <strong style="font-size: 0.95rem;">Instant Alert</strong>
+      <div style="font-size: 0.85rem; margin-top: 2px;">${message}</div>
+    </div>
+  `;
+
+  container.appendChild(toast);
+
+  // 6 seconds baad toast automatically gayab ho jayega
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => toast.remove(), 3005);
+  }, 6000);
+}
+
 // ==================== ADMIN: QUESTIONS MANAGEMENT ====================
 function switchQCategory(category) {
   currentAdminQCategory = category;
