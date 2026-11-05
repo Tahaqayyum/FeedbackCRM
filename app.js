@@ -154,6 +154,7 @@ async function openFeedbackForm() {
   feedbackAnswers = {};
   renderCurrentQuestion();
 }
+
 // render question start here
 function renderCurrentQuestion() {
   const container = document.getElementById('dynamic-questions-container');
@@ -228,7 +229,6 @@ function handleEmojiCardClick(element) {
     renderCurrentQuestion();
   }, 350);
 }
-
 //render question end here
 
 document.getElementById('submit-feedback-form')?.addEventListener('submit', async (e) => {
@@ -277,7 +277,7 @@ document.getElementById('submit-feedback-form')?.addEventListener('submit', asyn
   openFeedbackForm(); 
 });
 
-// ==================== ADMIN DASHBOARD & TABS ====================
+// ==================== ADMIN DASHBOARD & REAL-TIME ALERTS ====================
 function switchTab(index) {
   const btns = document.querySelectorAll('.tab-btn');
   const contents = document.querySelectorAll('.tab-content');
@@ -293,6 +293,11 @@ function switchTab(index) {
 
 async function loadAdminDashboard() {
   await loadCustomers();
+  initRealtimeAlerts();
+  
+  if (window.Notification && Notification.permission !== 'granted') {
+    Notification.requestPermission();
+  }
 }
 
 async function loadCustomers() {
@@ -337,38 +342,25 @@ function filterCustomerList() {
   renderCustomerTable(filtered);
 }
 
-// ==================== REAL-TIME NEGATIVE ALERTS ====================
-async function loadAdminDashboard() {
-  await loadCustomers();
-  initRealtimeAlerts();
-  
-  // Browser notification permission request
-  if (window.Notification && Notification.permission !== 'granted') {
-    Notification.requestPermission();
-  }
-}
-
+// ==================== REAL-TIME LISTENER SETUP ====================
 function initRealtimeAlerts() {
-  // Purana channel avoid karne ke liye unsubscribe kar sakte hain ya unique channel bana sakte hain
   if (window.feedbackChannel) {
     db.removeChannel(window.feedbackChannel);
   }
 
-  window.feedbackChannel = db.channel('public:customer_feedbacks')
+  window.feedbackChannel = db.channel('realtime:customer_feedbacks')
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'customer_feedbacks' },
       (payload) => {
+        console.log("Realtime payload received:", payload);
         const newFeedback = payload.new;
         
-        // Check agar feedback negative (Bad) hai
-        if (newFeedback.response_type === 'Bad') {
+        if (newFeedback && newFeedback.response_type === 'Bad') {
           const alertMsg = `Negative Feedback Alert! Customer: ${newFeedback.customer_name} (${newFeedback.category.toUpperCase()})`;
           
-          // 1. In-App Floating Toast Notification Show Karein
           showToast(alertMsg);
           
-          // 2. Browser Native Push Notification (Agar tab background mein bhi ho)
           if (window.Notification && Notification.permission === 'granted') {
             new Notification("⚠️ Negative Feedback Received!", {
               body: `${newFeedback.customer_name} gave a bad rating in ${newFeedback.category} shopping.`,
@@ -376,7 +368,6 @@ function initRealtimeAlerts() {
             });
           }
 
-          // 3. Agar Admin "Feedbacks Report" tab par hai, toh table auto-refresh ho jaye
           const activeTab = document.querySelector('.tab-content.active');
           if (activeTab && activeTab.id === 'tab-fb-reports') {
             loadFeedbacksReport();
@@ -384,7 +375,9 @@ function initRealtimeAlerts() {
         }
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log("Supabase Realtime Status:", status);
+    });
 }
 
 function showToast(message) {
@@ -403,11 +396,10 @@ function showToast(message) {
 
   container.appendChild(toast);
 
-  // 6 seconds baad toast automatically gayab ho jayega
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transition = 'opacity 0.3s ease';
-    setTimeout(() => toast.remove(), 3005);
+    setTimeout(() => toast.remove(), 300);
   }, 6000);
 }
 
