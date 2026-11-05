@@ -324,14 +324,26 @@ function renderCustomerTable(customers) {
       <td>${cust.name}</td>
       <td>${cust.mobile}</td>
       <td>
-        <div class="action-icons">
+        <div class="action-icons" style="display: flex; gap: 8px; align-items: center;">
           <a href="tel:${cust.mobile}" class="icon-btn" title="Call"><i class="fa-solid fa-phone" style="color: #10b981;"></i></a>
           <a href="https://wa.me/${cust.mobile.replace(/[^0-9]/g, '')}" target="_blank" class="icon-btn" title="WhatsApp"><i class="fa-brands fa-whatsapp" style="color: #25d366;"></i></a>
+          <button onclick="deleteCustomer('${cust.id}')" style="background: #ef4444; padding: 4px 8px; font-size: 0.8rem; width: auto; margin: 0;" title="Delete Customer"><i class="fa-solid fa-trash"></i></button>
         </div>
       </td>
     `;
     tbody.appendChild(tr);
   });
+}
+
+async function deleteCustomer(id) {
+  if (confirm('Are you sure you want to delete this customer record?')) {
+    const { error } = await db.from('customers').delete().eq('id', id);
+    if (error) {
+      alert('Error deleting customer: ' + error.message);
+    } else {
+      loadCustomers();
+    }
+  }
 }
 
 function filterCustomerList() {
@@ -353,7 +365,6 @@ function initRealtimeAlerts() {
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'customer_feedbacks' },
       (payload) => {
-        console.log("Realtime payload received:", payload);
         const newFeedback = payload.new;
         
         if (newFeedback && newFeedback.response_type === 'Bad') {
@@ -375,9 +386,7 @@ function initRealtimeAlerts() {
         }
       }
     )
-    .subscribe((status) => {
-      console.log("Supabase Realtime Status:", status);
-    });
+    .subscribe();
 }
 
 function showToast(message) {
@@ -562,7 +571,7 @@ async function loadFeedbacksReport() {
     return;
   }
 
-  let html = `<table><thead><tr><th>Channel</th><th>Customer Name</th><th>Mobile</th><th>Responses (Q & A)</th><th>Comment</th><th>Sentiment</th><th>Status</th><th>Date</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Channel</th><th>Customer Name</th><th>Mobile</th><th>Responses (Q & A)</th><th>Comment</th><th>Sentiment</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody>`;
   
   data.forEach(f => {
     let qaString = '';
@@ -590,6 +599,9 @@ async function loadFeedbacksReport() {
           </select>
         </td>
         <td>${new Date(f.created_at).toLocaleString()}</td>
+        <td>
+          <button onclick="deleteFeedback('${f.id}')" style="background: #ef4444; padding: 4px 8px; font-size: 0.8rem; width: auto; margin: 0;" title="Delete Feedback"><i class="fa-solid fa-trash"></i></button>
+        </td>
       </tr>
     `;
   });
@@ -603,6 +615,17 @@ async function updateFeedbackStatus(id, newStatus) {
     alert('Error updating status: ' + error.message);
   } else {
     loadFeedbacksReport();
+  }
+}
+
+async function deleteFeedback(id) {
+  if (confirm('Are you sure you want to delete this feedback report?')) {
+    const { error } = await db.from('customer_feedbacks').delete().eq('id', id);
+    if (error) {
+      alert('Error deleting feedback: ' + error.message);
+    } else {
+      loadFeedbacksReport();
+    }
   }
 }
 
@@ -740,18 +763,46 @@ async function deleteUser(id) {
   }
 }
 
-// ==================== SETTINGS & BRANDING ====================
+// ==================== SETTINGS & BRANDING (FILE UPLOAD) ====================
 async function saveSettings() {
-  const logo_url = document.getElementById('setting-logo-url').value.trim();
+  const fileInput = document.getElementById('setting-logo-file');
   const primary_color = document.getElementById('setting-primary-color').value;
   const body_color = document.getElementById('setting-body-color').value;
 
-  const { error } = await db.from('settings').upsert({ id: 1, logo_url, primary_color, body_color });
+  let logo_url = null;
+
+  // Agar admin ne naye logo ki file select ki hai
+  if (fileInput && fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    const fileName = `logo_${Date.now()}_${file.name}`;
+
+    // Note: Supabase mein 'logos' naam ka public storage bucket hona chahiye
+    const { data: uploadData, error: uploadError } = await db.storage
+      .from('logos')
+      .upload(fileName, file);
+
+    if (uploadError) {
+      alert('Error uploading logo image: ' + uploadError.message + '\n(Make sure a public storage bucket named "logos" is created in Supabase)');
+      return;
+    }
+
+    // Public URL get karein
+    const { data: publicUrlData } = db.storage.from('logos').getPublicUrl(fileName);
+    logo_url = publicUrlData.publicUrl;
+  }
+
+  // Settings table mein update ya insert karein
+  let updateObj = { id: 1, primary_color, body_color };
+  if (logo_url) {
+    updateObj.logo_url = logo_url;
+  }
+
+  const { error } = await db.from('settings').upsert(updateObj);
 
   if (error) {
     alert('Error saving settings: ' + error.message);
   } else {
     alert('Settings updated successfully!');
-    applyTheme(primary_color, body_color, logo_url);
+    loadAppSettings();
   }
 }
