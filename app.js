@@ -764,34 +764,34 @@ async function deleteUser(id) {
 }
 
 // ==================== SETTINGS & BRANDING (FILE UPLOAD) ====================
+// ==================== SETTINGS & BRANDING (FILE UPLOAD) ====================
 async function saveSettings() {
   const fileInput = document.getElementById('setting-logo-file');
-  const primary_color = document.getElementById('setting-primary-color').value;
-  const body_color = document.getElementById('setting-body-color').value;
+  const primaryColorInput = document.getElementById('setting-primary-color');
+  const bodyColorInput = document.getElementById('setting-body-color');
+
+  const primary_color = primaryColorInput ? primaryColorInput.value : '#4f46e5';
+  const body_color = bodyColorInput ? bodyColorInput.value : '#f3f4f6';
 
   let logo_url = null;
 
-  // Agar admin ne naye logo ki file select ki hai
-  if (fileInput && fileInput.files.length > 0) {
+  if (fileInput && fileInput.files && fileInput.files.length > 0) {
     const file = fileInput.files[0];
     const fileName = `logo_${Date.now()}_${file.name}`;
 
-    // Note: Supabase mein 'logos' naam ka public storage bucket hona chahiye
     const { data: uploadData, error: uploadError } = await db.storage
       .from('logos')
       .upload(fileName, file);
 
     if (uploadError) {
-      alert('Error uploading logo image: ' + uploadError.message + '\n(Make sure a public storage bucket named "logos" is created in Supabase)');
+      alert('Error uploading logo image: ' + uploadError.message);
       return;
     }
 
-    // Public URL get karein
     const { data: publicUrlData } = db.storage.from('logos').getPublicUrl(fileName);
     logo_url = publicUrlData.publicUrl;
   }
 
-  // Settings table mein update ya insert karein
   let updateObj = { id: 1, primary_color, body_color };
   if (logo_url) {
     updateObj.logo_url = logo_url;
