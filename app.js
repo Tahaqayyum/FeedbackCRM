@@ -27,20 +27,19 @@ async function loadAppSettings() {
     }
   } catch (err) {}
 }
+
 function applyTheme(primary, bodyBg, logoUrl) {
   document.documentElement.style.setProperty('--primary-color', primary || '#4f46e5');
   document.documentElement.style.setProperty('--button-color', primary || '#4f46e5');
   document.documentElement.style.setProperty('--body-bg', bodyBg || '#f3f4f6');
 
   if (logoUrl) {
-    // 1. App ke andar jitney bhi logos hain unhein update karein
     const logos = ['splash-logo', 'form-logo', 'admin-logo', 'dashboard-logo'];
     logos.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.src = logoUrl;
     });
 
-    // 2. Browser Tab ka Favicon bhi dynamic kar dein
     const favicon = document.getElementById('app-favicon');
     if (favicon) {
       favicon.href = logoUrl;
@@ -104,14 +103,23 @@ document.getElementById('customer-form').addEventListener('submit', async (e) =>
     return;
   }
 
-  const modal = document.getElementById('popup-modal');
-  modal.style.display = 'flex';
-  setTimeout(() => {
-    modal.style.display = 'none';
-  }, 3000);
-
+  showSuccessPopup('Customer record saved successfully!');
   document.getElementById('customer-form').reset();
 });
+
+// ==================== POPUP MODAL CONTROLS ====================
+function showSuccessPopup(message) {
+  const modal = document.getElementById('popup-modal');
+  const descText = document.getElementById('popup-desc-text');
+  if (descText) descText.innerText = message;
+  if (modal) modal.style.display = 'flex';
+}
+
+function closePopupAndReset() {
+  const modal = document.getElementById('popup-modal');
+  if (modal) modal.style.display = 'none';
+  switchScreen('user-dashboard-screen');
+}
 
 // ==================== FEEDBACK CATEGORY MODAL ====================
 function openCategoryModal() {
@@ -137,6 +145,27 @@ async function openFeedbackForm() {
   switchScreen('feedback-form-screen');
   document.getElementById('feedback-screen-title').innerText = `Customer Feedback (${currentFeedbackCategory.toUpperCase()})`;
   
+  // Reset Form Steps
+  document.getElementById('fb-step-details').style.display = 'block';
+  document.getElementById('fb-step-questions').style.display = 'none';
+  document.getElementById('feedback-submit-section').style.display = 'none';
+  
+  document.getElementById('fb-cust-name').value = '';
+  document.getElementById('fb-cust-mobile').value = '';
+  if (document.getElementById('global-feedback-comment')) {
+    document.getElementById('global-feedback-comment').value = '';
+  }
+}
+
+async function proceedToQuestions() {
+  const name = document.getElementById('fb-cust-name').value.trim();
+  const mobile = document.getElementById('fb-cust-mobile').value.trim();
+
+  if (!name || !mobile) {
+    alert('Please enter customer name and mobile number first.');
+    return;
+  }
+
   const { data, error } = await db.from('feedback_questions')
     .select('*')
     .eq('category', currentFeedbackCategory)
@@ -144,11 +173,8 @@ async function openFeedbackForm() {
     .order('sort_order', { ascending: true });
 
   const container = document.getElementById('dynamic-questions-container');
-  const submitSection = document.getElementById('feedback-submit-section');
-  
   if (!container) return;
   container.innerHTML = '';
-  if (submitSection) submitSection.style.display = 'none';
 
   if (error || !data || data.length === 0) {
     container.innerHTML = `<p style="color: #ef4444; text-align:center;">No active feedback questions available for ${currentFeedbackCategory}.</p>`;
@@ -158,10 +184,14 @@ async function openFeedbackForm() {
   activeQuestions = data;
   currentQIndex = 0;
   feedbackAnswers = {};
+
+  // Switch View to Questions Step
+  document.getElementById('fb-step-details').style.display = 'none';
+  document.getElementById('fb-step-questions').style.display = 'block';
+
   renderCurrentQuestion();
 }
 
-// render question start here
 function renderCurrentQuestion() {
   const container = document.getElementById('dynamic-questions-container');
   const submitSection = document.getElementById('feedback-submit-section');
@@ -209,6 +239,7 @@ function renderCurrentQuestion() {
         <div class="emoji-options-grid">${optionsHtml}</div>
       </div>
     `;
+    if (submitSection) submitSection.style.display = 'none';
   } else {
     container.innerHTML = `
       <div style="background: #ecfdf5; color: #065f46; padding: 15px; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 15px;">
@@ -235,10 +266,8 @@ function handleEmojiCardClick(element) {
     renderCurrentQuestion();
   }, 350);
 }
-//render question end here
 
-document.getElementById('submit-feedback-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
+async function submitFinalFeedback() {
   const name = document.getElementById('fb-cust-name').value.trim();
   const mobile = document.getElementById('fb-cust-mobile').value.trim();
   const globalCommentInput = document.getElementById('global-feedback-comment');
@@ -273,15 +302,8 @@ document.getElementById('submit-feedback-form')?.addEventListener('submit', asyn
     return;
   }
 
-  const modal = document.getElementById('popup-modal');
-  modal.style.display = 'flex';
-  setTimeout(() => {
-    modal.style.display = 'none';
-  }, 3000);
-
-  document.getElementById('submit-feedback-form').reset();
-  openFeedbackForm(); 
-});
+  showSuccessPopup('Feedback submitted successfully! Thank you.');
+}
 
 // ==================== ADMIN DASHBOARD & REAL-TIME ALERTS ====================
 function switchTab(index) {
@@ -769,7 +791,6 @@ async function deleteUser(id) {
   }
 }
 
-// ==================== SETTINGS & BRANDING (FILE UPLOAD) ====================
 // ==================== SETTINGS & BRANDING (FILE UPLOAD) ====================
 async function saveSettings() {
   const fileInput = document.getElementById('setting-logo-file');

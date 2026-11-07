@@ -273,6 +273,93 @@ th {
   to { transform: translateX(0); opacity: 1; }
 }
 
+
+/* Redesigned Success Popup Animation & Styles */
+@keyframes popupScaleIn {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.popup-card-box {
+  background: white;
+  width: 90%;
+  max-width: 360px;
+  padding: 30px 20px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+  animation: popupScaleIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  position: relative;
+}
+
+.popup-icon-circle {
+  width: 80px;
+  height: 80px;
+  background: rgba(16, 185, 129, 0.12);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+  position: relative;
+}
+
+.popup-icon-circle::before {
+  content: '';
+  position: absolute;
+  width: 62px;
+  height: 62px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
+}
+
+.popup-icon-circle i {
+  position: relative;
+  color: white;
+  font-size: 2rem;
+  z-index: 2;
+}
+
+.popup-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 10px;
+}
+
+.popup-desc {
+  font-size: 0.9rem;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 25px;
+}
+
+.popup-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.popup-btn:hover {
+  background: #059669;
+}
+
+
+
 /* Footer Developer Attribution */
 footer {
   text-align: center;

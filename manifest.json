@@ -1,18 +1,18 @@
 {
-  "name": "Customer Data PWA",
+  "name": "Feedify",
   "short_name": "CustomerApp",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#0066CC",
   "theme_color": "#A11D26",
   "icons": [
     {
-      "src": "/hsmicons.png",
+      "src": "/Feedify.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/hsmicons.png",
+      "src": "/Feedify.png",
       "sizes": "512x512",
       "type": "image/png"
     }

@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Feedify - Customer Feedback App</title>
+  <title>Feedify | Customer Data & Feedback PWA</title>
   <link id="app-favicon" rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
-
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -18,7 +17,7 @@
   <!-- 1. SPLASH / LOGIN SCREEN -->
   <div id="splash-screen" class="screen active">
     <div class="fade-in">
-      <img id="splash-logo" src="/Feedify.png" alt="Logo" class="logo-img">
+      <img id="splash-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" class="logo-img">
       <h2 style="margin-bottom: 1.5rem;">Welcome Login</h2>
       <form id="login-form">
         <input type="text" id="login-user" placeholder="User ID / Username" required autocomplete="username">
@@ -32,7 +31,7 @@
   <!-- USER DASHBOARD SCREEN (2 BUTTONS) -->
   <div id="user-dashboard-screen" class="screen">
     <div style="max-width: 450px; margin: auto; padding: 2rem; width: 100%; text-align: center;">
-      <img id="dashboard-logo" src="/Feedify.png" alt="Logo" style="width: 70px; height: 70px; object-fit: contain; margin-bottom: 1rem;">
+      <img id="dashboard-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" style="width: 70px; height: 70px; object-fit: contain; margin-bottom: 1rem;">
       <h2>Welcome User</h2>
       <p style="color: #6b7280; margin-bottom: 2rem;">Select an option to proceed</p>
       
@@ -48,7 +47,7 @@
   <div id="user-screen" class="screen">
     <div style="max-width: 450px; margin: auto; padding: 2rem; width: 100%;">
       <div style="text-align: center; margin-bottom: 1.5rem;">
-        <img id="form-logo" src="/Feedify.png" alt="Logo" style="width: 70px; height: 70px; object-fit: contain;">
+        <img id="form-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" style="width: 70px; height: 70px; object-fit: contain;">
         <h2>User Form</h2>
       </div>
       <form id="customer-form">
@@ -63,28 +62,35 @@
     <footer>Feedify &copy; 2026 | Design & develop by: TahaQayyum</footer>
   </div>
 
-  <!-- FEEDBACK FORM SCREEN -->
+  <!-- FEEDBACK FORM SCREEN (STEP-BY-STEP FLOW) -->
   <div id="feedback-form-screen" class="screen">
     <div style="max-width: 450px; margin: auto; padding: 2rem; width: 100%; max-height: 100vh; overflow-y: auto;">
       <h2 id="feedback-screen-title" style="text-align: center; margin-bottom: 1.5rem;">Customer Feedback</h2>
-      <form id="submit-feedback-form">
+      
+      <!-- STEP 1: CUSTOMER DETAILS -->
+      <div id="fb-step-details" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+        <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: #1f2937;">Customer Information</h3>
         <label>Customer Name</label>
-        <input type="text" id="fb-cust-name" placeholder="Enter customer name" required>
+        <input type="text" id="fb-cust-name" placeholder="Enter customer name" required style="margin-bottom: 12px;">
         
         <label>Mobile Number</label>
-        <input type="tel" id="fb-cust-mobile" placeholder="Enter mobile number" required>
+        <input type="tel" id="fb-cust-mobile" placeholder="Enter mobile number" required style="margin-bottom: 15px;">
+        
+        <button type="button" onclick="proceedToQuestions()">Next: Answer Questions</button>
+      </div>
 
-        <div id="dynamic-questions-container" style="margin: 15px 0;">
-          <!-- Questions step-by-step with 3D Emojis -->
-        </div>
+      <!-- STEP 2: DYNAMIC QUESTIONS & COMMENTS -->
+      <div id="fb-step-questions" style="display: none;">
+        <div id="dynamic-questions-container" style="margin-bottom: 15px;"></div>
 
-        <div id="feedback-submit-section" style="display: none;">
-          <label style="margin-top: 15px; display: block;">Overall Feedback / Comments</label>
+        <div id="feedback-submit-section" style="display: none; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+          <label style="margin-bottom: 8px; display: block; font-weight: 600;">Overall Feedback / Comments</label>
           <textarea id="global-feedback-comment" placeholder="Enter general comments or feedback here..." style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; resize: vertical; height: 80px; margin-bottom: 15px;"></textarea>
 
-          <button type="submit">Submit Feedback</button>
+          <button type="button" onclick="submitFinalFeedback()">Submit Feedback</button>
         </div>
-      </form>
+      </div>
+
       <button onclick="switchScreen('user-dashboard-screen')" style="background: #6b7280; margin-top: 15px;">Back to Dashboard</button>
     </div>
     <footer>Feedify &copy; 2026 | Design & develop by: TahaQayyum</footer>
@@ -95,7 +101,7 @@
     <div class="dashboard-container">
       <header>
         <div style="display: flex; align-items: center; gap: 10px;">
-          <img id="admin-logo" src="Feedify.png" alt="Logo" style="width: 40px; height: 40px; object-fit: contain;">
+          <img id="admin-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" style="width: 40px; height: 40px; object-fit: contain;">
           <h3 id="admin-brand-title">Admin Dashboard</h3>
         </div>
         <button onclick="logout()" style="width: auto; padding: 8px 16px; background: #ef4444; margin: 0;">Logout</button>
@@ -254,11 +260,15 @@
     </div>
   </div>
 
-  <!-- POPUP MODAL -->
-  <div id="popup-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
-    <div class="modal-content" style="background: white; padding: 2rem; border-radius: 12px; text-align: center;">
-      <i class="fa-solid fa-circle-check" style="font-size: 3rem; color: #10b981; margin-bottom: 1rem;"></i>
-      <h3 id="modal-msg">Record Saved Successfully!</h3>
+  <!-- REDESIGNED ANIMATED SUCCESS POPUP MODAL (REFERENCE DESIGN) -->
+  <div id="popup-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); justify-content: center; align-items: center; z-index: 1000;">
+    <div class="popup-card-box">
+      <div class="popup-icon-circle">
+        <i class="fa-solid fa-check"></i>
+      </div>
+      <h3 class="popup-title">Success!</h3>
+      <p class="popup-desc" id="popup-desc-text">Your action was completed successfully. Great job!</p>
+      <button class="popup-btn" onclick="closePopupAndReset()">Go Home</button>
     </div>
   </div>
 
