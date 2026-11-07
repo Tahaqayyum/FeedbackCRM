@@ -11,12 +11,22 @@ var supabase = window.dbInstance;
 let allCustomers = [];
 let currentFeedbackCategory = 'instore';
 let currentAdminQCategory = 'instore';
+let feedbackChartInstance = null;
 
 window.addEventListener('DOMContentLoaded', async () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js');
   }
   await loadAppSettings();
+
+  // Restore session from localStorage to prevent auto-logout on refresh
+  const savedUserRole = localStorage.getItem('feedify_user_role');
+  if (savedUserRole === 'admin') {
+    switchScreen('admin-screen');
+    loadAdminDashboard();
+  } else if (savedUserRole === 'user') {
+    switchScreen('user-dashboard-screen');
+  }
 });
 
 async function loadAppSettings() {
@@ -72,6 +82,9 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     return;
   }
 
+  // Save session to localStorage
+  localStorage.setItem('feedify_user_role', user.role);
+
   if (user.role === 'admin') {
     switchScreen('admin-screen');
     loadAdminDashboard();
@@ -81,6 +94,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 });
 
 function logout() {
+  localStorage.removeItem('feedify_user_role');
   switchScreen('splash-screen');
   document.getElementById('login-form').reset();
 }
@@ -88,6 +102,16 @@ function logout() {
 function switchScreen(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
+}
+
+// Mobile Sidebar Toggle Functions
+function toggleSidebar() {
+  const sidebar = document.getElementById('admin-sidebar-menu');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar && backdrop) {
+    sidebar.classList.toggle('open');
+    backdrop.classList.toggle('show');
+  }
 }
 
 // ==================== USER FORM & POPUP ====================
@@ -145,7 +169,6 @@ async function openFeedbackForm() {
   switchScreen('feedback-form-screen');
   document.getElementById('feedback-screen-title').innerText = `Customer Feedback (${currentFeedbackCategory.toUpperCase()})`;
   
-  // Reset Form Steps
   document.getElementById('fb-step-details').style.display = 'block';
   document.getElementById('fb-step-questions').style.display = 'none';
   document.getElementById('feedback-submit-section').style.display = 'none';
@@ -185,7 +208,6 @@ async function proceedToQuestions() {
   currentQIndex = 0;
   feedbackAnswers = {};
 
-  // Switch View to Questions Step
   document.getElementById('fb-step-details').style.display = 'none';
   document.getElementById('fb-step-questions').style.display = 'block';
 
@@ -305,27 +327,118 @@ async function submitFinalFeedback() {
   showSuccessPopup('Feedback submitted successfully! Thank you.');
 }
 
-// ==================== ADMIN DASHBOARD & REAL-TIME ALERTS ====================
+// ==================== ADMIN DASHBOARD & SIDEBAR TABS ====================
 function switchTab(index) {
-  const btns = document.querySelectorAll('.tab-btn');
+  const btns = document.querySelectorAll('.sidebar-btn');
   const contents = document.querySelectorAll('.tab-content');
 
   btns.forEach((b, i) => b.classList.toggle('active', i === index));
   contents.forEach((c, i) => c.classList.toggle('active', i === index));
 
-  if (index === 0 || index === 1) loadCustomers();
-  if (index === 2) loadUsersList();
-  if (index === 4) loadQuestionsList();
-  if (index === 5) loadFeedbacksReport();
+  // Close sidebar on mobile after clicking a tab
+  const sidebar = document.getElementById('admin-sidebar-menu');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar) sidebar.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('show');
+
+  if (index === 0) loadDashboardMetrics();
+  if (index === 1 || index === 2) loadCustomers();
+  if (index === 3) loadUsersList();
+  if (index === 5) loadQuestionsList();
+  if (index === 6) loadFeedbacksReport();
 }
 
 async function loadAdminDashboard() {
+  await loadDashboardMetrics();
   await loadCustomers();
   initRealtimeAlerts();
   
   if (window.Notification && Notification.permission !== 'granted') {
     Notification.requestPermission();
   }
+}
+
+async function loadDashboardMetrics() {
+  const { data, error } = await db.from('customer_feedbacks').select('*');
+  if (error || !data) return;
+
+  let goodCount = 0;
+  let badCount = 0;
+  let resolvedCount = 0;
+  let pendingCount = 0;
+
+  data.forEach(item => {
+    if (item.response_type === 'Good') goodCount++;
+    if (item.response_type === 'Bad') badCount++;
+    if (item.status === 'Resolved') resolvedCount++;
+    if (item.status === 'Pending') pendingCount++;
+  });
+
+  document.getElementById('stat-good-count').innerText = goodCount;
+  document.getElementById('stat-bad-count').innerText = badCount;
+  document.getElementById('stat-resolved-count').innerText = resolvedCount;
+  document.getElementById('stat-pending-count').innerText = pendingCount;
+
+  renderFeedbackChart(goodCount, badCount, resolvedCount, pendingCount);
+}
+
+function renderFeedbackChart(good, bad, resolved, pending) {
+  const ctx = document.getElementById('feedbackChart').getContext('2d');
+  
+  if (feedbackChartInstance) {
+    feedbackChartInstance.destroy();
+  }
+
+  feedbackChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Good Feedback', 'Bad Feedback', 'Resolved', 'Pending'],
+      datasets: [{
+        label: 'Feedback Analytics',
+        data: [good, bad, resolved, pending],
+        backgroundColor: [
+          'rgba(16, 185, 129, 0.8)',
+          'rgba(239, 68, 68, 0.8)',
+          'rgba(59, 130, 246, 0.8)',
+          'rgba(245, 158, 11, 0.8)'
+        ],
+        borderColor: [
+          '#10b981',
+          '#ef4444',
+          '#3b82f6',
+          '#f59e0b'
+        ],
+        borderWidth: 2,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+}
+
+function filterFeedbackByCard(sentiment) {
+  switchTab(6);
+  document.getElementById('filter-sentiment').value = sentiment;
+  document.getElementById('filter-channel').value = 'all';
+  document.getElementById('filter-status').value = 'all';
+  loadFeedbacksReport();
+}
+
+function filterFeedbackByCardStatus(status) {
+  switchTab(6);
+  document.getElementById('filter-status').value = status;
+  document.getElementById('filter-channel').value = 'all';
+  document.getElementById('filter-sentiment').value = 'all';
+  loadFeedbacksReport();
 }
 
 async function loadCustomers() {
@@ -408,7 +521,9 @@ function initRealtimeAlerts() {
           }
 
           const activeTab = document.querySelector('.tab-content.active');
-          if (activeTab && activeTab.id === 'tab-fb-reports') {
+          if (activeTab && activeTab.id === 'tab-dashboard-overview') {
+            loadDashboardMetrics();
+          } else if (activeTab && activeTab.id === 'tab-fb-reports') {
             loadFeedbacksReport();
           }
         }
@@ -767,8 +882,8 @@ async function loadUsersList() {
           <td>${u.role}</td>
           <td><span style="color: ${u.status === 'active' ? '#10b981' : '#ef4444'}">${u.status}</span></td>
           <td>
-            <button onclick="toggleUserStatus('${u.id}', '${u.status}')" style="padding: 4px 8px; font-size: 0.8rem; width: auto; margin:0;">Toggle Status</button>
-            <button onclick="deleteUser('${u.id}')" style="padding: 4px 8px; font-size: 0.8rem; width: auto; background: #ef4444; margin-left: 5px;">Delete</button>
+            <button onclick="toggleUserStatus('${u.id}', '${u.status}')" style="padding: 4px 8px; font-size: 0.80rem; width: auto; margin:0;">Toggle Status</button>
+            <button onclick="deleteUser('${u.id}')" style="padding: 4px 8px; font-size: 0.80rem; width: auto; background: #ef4444; margin-left: 5px;">Delete</button>
           </td>
         </tr>
       `;

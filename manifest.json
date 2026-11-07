@@ -4,7 +4,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0066CC",
-  "theme_color": "#A11D26",
+  "theme_color": "#0166cc",
   "icons": [
     {
       "src": "/Feedify.png",

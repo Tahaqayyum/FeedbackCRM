@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Feedify | Customer Data & Feedback PWA</title>
+  <title>Customer Data & Feedback PWA</title>
   <link id="app-favicon" rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
 
   <!-- 1. SPLASH / LOGIN SCREEN -->
@@ -21,14 +21,15 @@
       <h2 style="margin-bottom: 1.5rem;">Welcome Login</h2>
       <form id="login-form">
         <input type="text" id="login-user" placeholder="User ID / Username" required autocomplete="username">
-        <input type="password" id="login-pass" placeholder="Password" required autocomplete="current-password">
+        <!-- Breach warning prevention attributes -->
+        <input type="password" id="login-pass" placeholder="Password" required autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');">
         <button type="submit">Login</button>
       </form>
       <footer>Feedify &copy; 2026 | Design & develop by: TahaQayyum</footer>
     </div>
   </div>
 
-  <!-- USER DASHBOARD SCREEN (2 BUTTONS) -->
+  <!-- USER DASHBOARD SCREEN -->
   <div id="user-dashboard-screen" class="screen">
     <div style="max-width: 450px; margin: auto; padding: 2rem; width: 100%; text-align: center;">
       <img id="dashboard-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" style="width: 70px; height: 70px; object-fit: contain; margin-bottom: 1rem;">
@@ -43,7 +44,7 @@
     <footer>Feedify &copy; 2026 | Design & develop by: TahaQayyum</footer>
   </div>
 
-  <!-- 2. USER FORM SCREEN -->
+  <!-- USER FORM SCREEN -->
   <div id="user-screen" class="screen">
     <div style="max-width: 450px; margin: auto; padding: 2rem; width: 100%;">
       <div style="text-align: center; margin-bottom: 1.5rem;">
@@ -62,12 +63,11 @@
     <footer>Feedify &copy; 2026 | Design & develop by: TahaQayyum</footer>
   </div>
 
-  <!-- FEEDBACK FORM SCREEN (STEP-BY-STEP FLOW) -->
+  <!-- FEEDBACK FORM SCREEN -->
   <div id="feedback-form-screen" class="screen">
     <div style="max-width: 450px; margin: auto; padding: 2rem; width: 100%; max-height: 100vh; overflow-y: auto;">
       <h2 id="feedback-screen-title" style="text-align: center; margin-bottom: 1.5rem;">Customer Feedback</h2>
       
-      <!-- STEP 1: CUSTOMER DETAILS -->
       <div id="fb-step-details" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
         <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: #1f2937;">Customer Information</h3>
         <label>Customer Name</label>
@@ -79,7 +79,6 @@
         <button type="button" onclick="proceedToQuestions()">Next: Answer Questions</button>
       </div>
 
-      <!-- STEP 2: DYNAMIC QUESTIONS & COMMENTS -->
       <div id="fb-step-questions" style="display: none;">
         <div id="dynamic-questions-container" style="margin-bottom: 15px;"></div>
 
@@ -98,158 +97,221 @@
 
   <!-- 3. ADMIN DASHBOARD SCREEN -->
   <div id="admin-screen" class="screen">
-    <div class="dashboard-container">
-      <header>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <img id="admin-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" style="width: 40px; height: 40px; object-fit: contain;">
-          <h3 id="admin-brand-title">Admin Dashboard</h3>
+    
+    <!-- MOBILE TOP NAVBAR WITH HAMBURGER -->
+    <div class="mobile-admin-header">
+      <button class="menu-toggle-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <span style="font-weight: bold; color: #1e293b;">Feedify Admin</span>
+    </div>
+
+    <div class="admin-layout-wrapper">
+      
+      <!-- SIDEBAR -->
+      <div class="admin-sidebar" id="admin-sidebar-menu">
+        <div class="sidebar-brand">
+          <img id="admin-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" style="width: 35px; height: 35px; object-fit: contain;">
+          <span id="admin-brand-title" style="font-weight: bold; font-size: 1.1rem; color: #1e293b;">Feedify Admin</span>
+          <button class="sidebar-close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <button onclick="logout()" style="width: auto; padding: 8px 16px; background: #ef4444; margin: 0;">Logout</button>
-      </header>
-
-      <nav class="tabs-nav">
-        <button class="tab-btn active" onclick="switchTab(0)">Customer List</button>
-        <button class="tab-btn" onclick="switchTab(1)">Download Report</button>
-        <button class="tab-btn" onclick="switchTab(2)">Users</button>
-        <button class="tab-btn" onclick="switchTab(3)">Settings</button>
-        <button class="tab-btn" onclick="switchTab(4)">Questions</button>
-        <button class="tab-btn" onclick="switchTab(5)">Feedbacks Report</button>
-      </nav>
-
-      <!-- Tab 1: Customer List -->
-      <div class="tab-content active" id="tab-customers">
-        <div style="margin-bottom: 1rem; display: flex; gap: 10px;">
-          <input type="text" id="search-cust" placeholder="Search by name or number..." oninput="filterCustomerList()" style="margin: 0;">
+        
+        <div class="sidebar-nav-links">
+          <button class="sidebar-btn active" onclick="switchTab(0)"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+          <button class="sidebar-btn" onclick="switchTab(1)"><i class="fa-solid fa-users"></i> Customer List</button>
+          <button class="sidebar-btn" onclick="switchTab(2)"><i class="fa-solid fa-file-excel"></i> Download Report</button>
+          <button class="sidebar-btn" onclick="switchTab(3)"><i class="fa-solid fa-user-shield"></i> Users</button>
+          <button class="sidebar-btn" onclick="switchTab(4)"><i class="fa-solid fa-gears"></i> Settings</button>
+          <button class="sidebar-btn" onclick="switchTab(5)"><i class="fa-solid fa-clipboard-question"></i> Questions</button>
+          <button class="sidebar-btn" onclick="switchTab(6)"><i class="fa-solid fa-comments"></i> Feedbacks Report</button>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Customer Name</th>
-              <th>Mobile Number</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="customer-table-body"></tbody>
-        </table>
-      </div>
 
-      <!-- Tab 2: Download Report -->
-      <div class="tab-content" id="tab-report">
-        <h3>Export Reports to Excel</h3>
-        <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
-          <label>Filter By Range:</label>
-          <select id="report-filter">
-            <option value="all">All Time</option>
-            <option value="day">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
-          <button onclick="exportToExcel()" style="margin-top: 15px;"><i class="fa-solid fa-file-excel"></i> Export Excel File</button>
+        <div class="sidebar-footer">
+          <button onclick="logout()" style="background: #ef4444; width: 100%; padding: 10px; margin: 0; font-size: 0.9rem;"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
         </div>
       </div>
 
-      <!-- Tab 3: Users Management -->
-      <div class="tab-content" id="tab-users">
-        <h3>Manage System Users</h3>
-        <form id="add-user-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
-          <input type="text" id="new-username" placeholder="Username" required autocomplete="username">
-          <input type="password" id="new-password" placeholder="Password" required autocomplete="new-password">
-          <select id="new-role">
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button type="submit">Add User</button>
-        </form>
-        <div style="margin-top: 1.5rem;" id="users-list-container"></div>
-      </div>
+      <!-- SIDEBAR BACKDROP FOR MOBILE -->
+      <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
-      <!-- Tab 4: Branding & Theme -->
-      <div class="tab-content" id="tab-settings">
-        <h3>Branding & Theme Customization</h3>
-        <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
-          <label>Upload Company Logo (JPG/PNG)</label>
-          <input type="file" id="setting-logo-file" accept="image/png, image/jpeg" style="margin-bottom: 10px; padding: 8px; background: #f9fafb; border: 1px solid #d1d5db; border-radius: 6px; width: 100%;">
+      <!-- RIGHT CONTENT AREA -->
+      <div class="admin-main-content">
+        
+        <div class="tab-content active" id="tab-dashboard-overview">
+          <h2 style="margin-bottom: 1.5rem; color: #1e293b;">Dashboard Overview</h2>
           
-          <label style="margin-top: 10px; display: block;">Primary Theme Color</label>
-          <input type="color" id="setting-primary-color" value="#4f46e5" style="height: 45px; padding: 2px;">
-          
-          <label style="margin-top: 10px; display: block;">Body Background Color</label>
-          <input type="color" id="setting-body-color" value="#f3f4f6" style="height: 45px; padding: 2px;">
-          
-          <button onclick="saveSettings()" style="margin-top: 20px;">Save Settings</button>
-        </div>
-      </div>
+          <div class="metrics-grid">
+            <div class="metric-card good-card" onclick="filterFeedbackByCard('Good')">
+              <div class="metric-info">
+                <span class="metric-title">Good Feedbacks</span>
+                <h3 id="stat-good-count">0</h3>
+              </div>
+              <div class="metric-icon" style="background: #d1fae5; color: #10b981;"><i class="fa-solid fa-face-smile"></i></div>
+            </div>
 
-      <!-- Tab 5: Feedback Questions Management -->
-      <div class="tab-content" id="tab-fb-questions">
-        <h3>Manage Feedback Questions</h3>
-        <div style="margin: 1rem 0; display: flex; gap: 10px;">
-          <button class="q-tab-btn active" onclick="switchQCategory('instore')" style="width: auto; padding: 8px 16px;">Instore Questions</button>
-          <button class="q-tab-btn" onclick="switchQCategory('online')" style="width: auto; padding: 8px 16px; background: #6b7280;">Online Questions</button>
-        </div>
+            <div class="metric-card bad-card" onclick="filterFeedbackByCard('Bad')">
+              <div class="metric-info">
+                <span class="metric-title">Bad Feedbacks</span>
+                <h3 id="stat-bad-count">0</h3>
+              </div>
+              <div class="metric-icon" style="background: #fee2e2; color: #ef4444;"><i class="fa-solid fa-face-frown"></i></div>
+            </div>
 
-        <form id="add-question-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <input type="hidden" id="edit-question-id" value="">
-          <label id="form-mode-label" style="font-weight: 600; color: #4f46e5; margin-bottom: 5px; display:block;">Add New Question</label>
-          
-          <label style="font-size: 0.9rem; margin-top: 5px; display: block;">Select Category:</label>
-          <select id="new-question-category" style="margin-top: 5px; margin-bottom: 10px;">
-            <option value="instore">Instore Shopping</option>
-            <option value="online">Online Shopping</option>
-          </select>
+            <div class="metric-card resolved-card" onclick="filterFeedbackByCardStatus('Resolved')">
+              <div class="metric-info">
+                <span class="metric-title">Resolved Feedbacks</span>
+                <h3 id="stat-resolved-count">0</h3>
+              </div>
+              <div class="metric-icon" style="background: #dbeafe; color: #3b82f6;"><i class="fa-solid fa-circle-check"></i></div>
+            </div>
 
-          <input type="text" id="new-question-text" placeholder="Enter question text..." required>
-          <input type="text" id="new-question-options" placeholder="Options (comma separated, e.g. Good, Average, Bad)" required style="margin-top: 8px;">
-          <input type="number" id="new-question-sort" placeholder="Sort Order (e.g. 1, 2, 3)" value="0" style="margin-top: 8px;">
-          
-          <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button type="submit" id="save-q-btn">Save Question</button>
-            <button type="button" id="cancel-edit-btn" onclick="resetQuestionForm()" style="background: #6b7280; display: none;">Cancel</button>
+            <div class="metric-card pending-card" onclick="filterFeedbackByCardStatus('Pending')">
+              <div class="metric-info">
+                <span class="metric-title">Pending Feedbacks</span>
+                <h3 id="stat-pending-count">0</h3>
+              </div>
+              <div class="metric-icon" style="background: #fef3c7; color: #f59e0b;"><i class="fa-solid fa-clock"></i></div>
+            </div>
           </div>
-        </form>
-        <div id="questions-list-container" style="margin-top: 1.5rem;"></div>
-      </div>
 
-      <!-- Tab 6: Customer Feedbacks Report -->
-      <div class="tab-content" id="tab-fb-reports">
-        <h3>Customer Feedbacks Report</h3>
-        <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-          <div>
-            <label>Channel:</label>
-            <select id="filter-channel" onchange="loadFeedbacksReport()">
-              <option value="all">All Channels</option>
-              <option value="instore">Instore</option>
-              <option value="online">Online</option>
+          <div class="chart-container-box" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 2rem;">
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: #374151;">Feedback Analytics Overview</h3>
+            <div style="position: relative; height: 300px; width: 100%;">
+              <canvas id="feedbackChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-customers">
+          <h3>Customer Records</h3>
+          <div style="margin: 1rem 0; display: flex; gap: 10px;">
+            <input type="text" id="search-cust" placeholder="Search by name or number..." oninput="filterCustomerList()" style="margin: 0;">
+          </div>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer Name</th>
+                  <th>Mobile Number</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customer-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-report">
+          <h3>Export Reports to Excel</h3>
+          <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
+            <label>Filter By Range:</label>
+            <select id="report-filter">
+              <option value="all">All Time</option>
+              <option value="day">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
             </select>
-          </div>
-          <div>
-            <label>Sentiment:</label>
-            <select id="filter-sentiment" onchange="loadFeedbacksReport()">
-              <option value="all">All Sentiments</option>
-              <option value="Good">Good</option>
-              <option value="Bad">Bad</option>
-            </select>
-          </div>
-          <div>
-            <label>Status:</label>
-            <select id="filter-status" onchange="loadFeedbacksReport()">
-              <option value="all">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Resolved">Resolved</option>
-            </select>
-          </div>
-          <div style="margin-left: auto;">
-            <button onclick="exportFeedbackExcel()" style="margin-top: 15px;"><i class="fa-solid fa-file-excel"></i> Export Filtered Excel</button>
+            <button onclick="exportToExcel()" style="margin-top: 15px;"><i class="fa-solid fa-file-excel"></i> Export Excel File</button>
           </div>
         </div>
-        <div style="margin-top: 1.5rem; overflow-x: auto;" id="feedbacks-table-container"></div>
+
+        <div class="tab-content" id="tab-users">
+          <h3>Manage System Users</h3>
+          <form id="add-user-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
+            <input type="text" id="new-username" placeholder="Username" required autocomplete="username">
+            <input type="password" id="new-password" placeholder="Password" required autocomplete="new-password">
+            <select id="new-role">
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button type="submit">Add User</button>
+          </form>
+          <div style="margin-top: 1.5rem; overflow-x: auto;" id="users-list-container"></div>
+        </div>
+
+        <div class="tab-content" id="tab-settings">
+          <h3>Branding & Theme Customization</h3>
+          <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
+            <label>Upload Company Logo (JPG/PNG)</label>
+            <input type="file" id="setting-logo-file" accept="image/png, image/jpeg" style="margin-bottom: 10px; padding: 8px; background: #f9fafb; border: 1px solid #d1d5db; border-radius: 6px; width: 100%;">
+            
+            <label style="margin-top: 10px; display: block;">Primary Theme Color</label>
+            <input type="color" id="setting-primary-color" value="#4f46e5" style="height: 45px; padding: 2px;">
+            
+            <label style="margin-top: 10px; display: block;">Body Background Color</label>
+            <input type="color" id="setting-body-color" value="#f3f4f6" style="height: 45px; padding: 2px;">
+            
+            <button onclick="saveSettings()" style="margin-top: 20px;">Save Settings</button>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-fb-questions">
+          <h3>Manage Feedback Questions</h3>
+          <div style="margin: 1rem 0; display: flex; gap: 10px;">
+            <button class="q-tab-btn active" onclick="switchQCategory('instore')" style="width: auto; padding: 8px 16px;">Instore</button>
+            <button class="q-tab-btn" onclick="switchQCategory('online')" style="width: auto; padding: 8px 16px; background: #6b7280;">Online</button>
+          </div>
+
+          <form id="add-question-form" style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <input type="hidden" id="edit-question-id" value="">
+            <label id="form-mode-label" style="font-weight: 600; color: #4f46e5; margin-bottom: 5px; display:block;">Add New Question</label>
+            
+            <label style="font-size: 0.9rem; margin-top: 5px; display: block;">Select Category:</label>
+            <select id="new-question-category" style="margin-top: 5px; margin-bottom: 10px;">
+              <option value="instore">Instore Shopping</option>
+              <option value="online">Online Shopping</option>
+            </select>
+
+            <input type="text" id="new-question-text" placeholder="Enter question text..." required>
+            <input type="text" id="new-question-options" placeholder="Options (comma separated, e.g. Good, Average, Bad)" required style="margin-top: 8px;">
+            <input type="number" id="new-question-sort" placeholder="Sort Order (e.g. 1, 2, 3)" value="0" style="margin-top: 8px;">
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+              <button type="submit" id="save-q-btn">Save Question</button>
+              <button type="button" id="cancel-edit-btn" onclick="resetQuestionForm()" style="background: #6b7280; display: none;">Cancel</button>
+            </div>
+          </form>
+          <div id="questions-list-container" style="margin-top: 1.5rem; overflow-x: auto;"></div>
+        </div>
+
+        <div class="tab-content" id="tab-fb-reports">
+          <h3>Customer Feedbacks Report</h3>
+          <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <div>
+              <label>Channel:</label>
+              <select id="filter-channel" onchange="loadFeedbacksReport()">
+                <option value="all">All Channels</option>
+                <option value="instore">Instore</option>
+                <option value="online">Online</option>
+              </select>
+            </div>
+            <div>
+              <label>Sentiment:</label>
+              <select id="filter-sentiment" onchange="loadFeedbacksReport()">
+                <option value="all">All Sentiments</option>
+                <option value="Good">Good</option>
+                <option value="Bad">Bad</option>
+              </select>
+            </div>
+            <div>
+              <label>Status:</label>
+              <select id="filter-status" onchange="loadFeedbacksReport()">
+                <option value="all">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </div>
+            <div style="margin-left: auto;">
+              <button onclick="exportFeedbackExcel()" style="margin-top: 15px;"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+            </div>
+          </div>
+          <div style="margin-top: 1.5rem; overflow-x: auto;" id="feedbacks-table-container"></div>
+        </div>
+
+        <footer style="margin-top: 40px; text-align: center; color: #6b7280; font-size: 0.85rem;">Design & develop by: TahaQayyum</footer>
       </div>
 
-      <footer>Feedify &copy; 2026 | Design & develop by: TahaQayyum</footer>
     </div>
   </div>
 
-  <!-- CATEGORY SELECTION MODAL -->
   <div id="category-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
     <div style="background: white; padding: 2rem; border-radius: 12px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
       <h3>Select Feedback Channel</h3>
@@ -260,7 +322,6 @@
     </div>
   </div>
 
-  <!-- REDESIGNED ANIMATED SUCCESS POPUP MODAL (REFERENCE DESIGN) -->
   <div id="popup-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); justify-content: center; align-items: center; z-index: 1000;">
     <div class="popup-card-box">
       <div class="popup-icon-circle">
