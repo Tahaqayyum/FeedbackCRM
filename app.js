@@ -27,18 +27,24 @@ async function loadAppSettings() {
     }
   } catch (err) {}
 }
-
 function applyTheme(primary, bodyBg, logoUrl) {
   document.documentElement.style.setProperty('--primary-color', primary || '#4f46e5');
   document.documentElement.style.setProperty('--button-color', primary || '#4f46e5');
   document.documentElement.style.setProperty('--body-bg', bodyBg || '#f3f4f6');
 
   if (logoUrl) {
+    // 1. App ke andar jitney bhi logos hain unhein update karein
     const logos = ['splash-logo', 'form-logo', 'admin-logo', 'dashboard-logo'];
     logos.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.src = logoUrl;
     });
+
+    // 2. Browser Tab ka Favicon bhi dynamic kar dein
+    const favicon = document.getElementById('app-favicon');
+    if (favicon) {
+      favicon.href = logoUrl;
+    }
   }
 }
 
